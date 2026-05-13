@@ -3,6 +3,8 @@ import {
   assetPriceListSchema,
   cashflowEntryListSchema,
   operationListSchema,
+  positionListSchema,
+  positionOverviewSchema,
   portfolioListSchema,
   reportExecutionListSchema,
   reportExecutionSchema,
@@ -14,11 +16,32 @@ import type {
   AssetPriceList,
   CashflowEntryList,
   OperationList,
+  PositionList,
+  PositionOverview,
   PortfolioList,
   ReportExecution,
   ReportExecutionList,
   ReportTemplateList,
 } from "@/types/domain";
+
+type PositionFilters = {
+  portfolioId?: string | null;
+  asOfDate?: string | null;
+};
+
+function buildPositionQueryString(filters: PositionFilters): string {
+  const params = new URLSearchParams();
+
+  if (filters.portfolioId) {
+    params.set("portfolio_id", filters.portfolioId);
+  }
+  if (filters.asOfDate) {
+    params.set("as_of_date", filters.asOfDate);
+  }
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : "";
+}
 
 export function fetchPortfolios(): Promise<PortfolioList> {
   return apiGet("/portfolios", portfolioListSchema);
@@ -38,6 +61,14 @@ export function fetchCashflowEntries(): Promise<CashflowEntryList> {
 
 export function fetchAssetPrices(): Promise<AssetPriceList> {
   return apiGet("/pricing", assetPriceListSchema);
+}
+
+export function fetchPositions(filters: PositionFilters = {}): Promise<PositionList> {
+  return apiGet(`/positions${buildPositionQueryString(filters)}`, positionListSchema);
+}
+
+export function fetchPositionOverview(filters: PositionFilters = {}): Promise<PositionOverview> {
+  return apiGet(`/positions/overview${buildPositionQueryString(filters)}`, positionOverviewSchema);
 }
 
 export function fetchReportTemplates(): Promise<ReportTemplateList> {

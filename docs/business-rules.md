@@ -74,6 +74,25 @@ Em cada um desses dominios:
 
 Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, revisao interna e compliance operacional.
 
+## Regras iniciais de posicao
+
+O modulo de posicao entrou como consolidacao read-only, sem tabela dedicada nesta fase.
+
+Regras aplicadas:
+
+- a posicao considera apenas operacoes com status `approved` e `settled`
+- o corte temporal usa `trade_date` como data economica inicial
+- apenas `buy` e `contribution` aumentam quantidade na consolidacao inicial
+- apenas `sell`, `redemption` e `amortization` reduzem quantidade na consolidacao inicial
+- `dividend`, `interest`, `coupon`, `fee`, `tax`, `adjustment` e `transfer` nao alteram a quantidade nesta primeira versao
+- o custo e consolidado por media ponderada
+- a marcacao a mercado usa o ultimo preco disponivel ate a data de referencia
+- quando houver preco na mesma data, o fluxo prioriza o registro validado
+
+Observacao importante:
+
+- eventos corporativos mais sofisticados, aluguel, short e transferencia entre carteiras ainda nao receberam tratamento dedicado
+
 ## Ideias futuras para risco, posicao, liquidez e relatorios
 
 ### Risco

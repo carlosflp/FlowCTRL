@@ -106,6 +106,16 @@ Campos principais:
 - `created_at`
 - `updated_at`
 
+### Consolidated position view
+
+Nesta etapa, a plataforma passou a expor uma visao consolidada de posicao sem criar nova tabela fisica.
+
+A posicao e calculada em tempo de leitura a partir de:
+
+- `Operation` como origem de quantidade e custo
+- `AssetPrice` como origem de marcacao a mercado
+- `Portfolio` e `Asset` como dimensoes da agregacao
+
 ### ReportTemplate
 
 Modelo parametrizavel para geracao de relatorios.
@@ -188,7 +198,7 @@ Valores monetarios e quantidades foram modelados com precisao decimal via SQLAlc
 
 ### Tabelas de suporte ja ativas
 
-`cashflow`, `pricing`, `reports` e `audit` ja fazem parte do modelo principal. Nesta etapa, `cashflow`, `pricing` e `reports` deixaram de ser apenas preparacao estrutural e passaram a ter fluxo operacional utilizavel.
+`cashflow`, `pricing`, `positions`, `reports` e `audit` ja fazem parte do modelo principal. `positions` ainda nao possui tabela propria: foi desenhado como servico de consolidacao em leitura para manter a base enxuta nesta fase.
 
 ### Restricoes importantes
 

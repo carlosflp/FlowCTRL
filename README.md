@@ -1,6 +1,6 @@
 # FlowCTRL
 
-FlowCTRL is the foundation of an internal operating platform for an asset manager. The current base covers portfolio and asset master data, operations, cashflow events, asset prices, authentication, audit trail and the first protected frontend workflows.
+FlowCTRL is the foundation of an internal operating platform for an asset manager. The current base covers portfolio and asset master data, operations, cashflow events, asset prices, consolidated positions, authentication, audit trail and the first protected frontend workflows.
 
 ## Current stage
 
@@ -10,6 +10,7 @@ The repository now includes:
 - JWT authentication with local admin bootstrap
 - role-based authorization (`admin`, `manager`, `analyst`, `viewer`)
 - CRUD APIs for portfolios, assets, operations, cashflow and pricing
+- consolidated position endpoints by portfolio and asset
 - async reporting with Celery and MinIO
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
@@ -95,6 +96,14 @@ Some small structural adjustments were kept from the original proposal because t
 - artifact storage in MinIO
 - authenticated download endpoint
 - report execution screen with queue status polling and download
+
+### Stage 5: consolidated positions
+
+- read-only consolidated position service by portfolio and asset
+- position overview endpoint for dashboard consumption
+- as-of-date and portfolio filtering
+- weighted-average cost basis with latest-price mark-to-market
+- frontend position screen with operational filters
 
 ## Roles
 
@@ -254,6 +263,11 @@ npm run build
 - `PUT /api/v1/pricing/{price_id}`
 - `DELETE /api/v1/pricing/{price_id}`
 
+### Positions
+
+- `GET /api/v1/positions`
+- `GET /api/v1/positions/overview`
+
 ### Reports
 
 - `GET /api/v1/reports/templates`
@@ -271,16 +285,16 @@ Validated in the current stage:
 
 - Docker Compose stack running locally
 - backend health endpoint responding `200`
-- backend test suite passing with `15` tests
+- backend test suite passing with `18` tests
 - frontend production build passing
-- frontend routes for `/login`, `/cashflow`, `/pricing` and `/reports` compiling successfully
+- frontend routes for `/login`, `/cashflow`, `/pricing`, `/positions` and `/reports` compiling successfully
 - worker task `reports.generate_execution` loaded and executed successfully
 - real report execution completed locally with artifact download returning `200`
 
 ## Recommended next steps
 
 1. Add user management endpoints and an admin screen for role assignment.
-2. Add position and cash consolidation services for dashboard and portfolio views.
+2. Expand position handling for corporate actions, transfers and richer valuation rules.
 3. Expand report filters by date range, portfolio scope and custom columns.
 4. Expand audit context with authenticated user attribution.
 5. Add CI for backend tests, frontend build and linting.

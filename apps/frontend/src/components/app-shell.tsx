@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   LayoutGrid,
   LogOut,
+  PieChart,
   Wallet,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ const navigation = [
   { href: "/operations", label: "Operacoes", icon: ClipboardList },
   { href: "/cashflow", label: "Caixa", icon: Wallet },
   { href: "/pricing", label: "Precos", icon: DollarSign },
+  { href: "/positions", label: "Posicoes", icon: PieChart },
   { href: "/reports", label: "Relatorios", icon: FileSpreadsheet },
 ];
 

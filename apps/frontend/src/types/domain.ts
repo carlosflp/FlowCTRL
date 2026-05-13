@@ -10,6 +10,9 @@ import {
   cashflowEntrySchema,
   operationListSchema,
   operationSchema,
+  positionListSchema,
+  positionOverviewSchema,
+  positionSchema,
   portfolioListSchema,
   portfolioSchema,
   reportExecutionListSchema,
@@ -30,6 +33,9 @@ export type CashflowEntry = z.infer<typeof cashflowEntrySchema>;
 export type CashflowEntryList = z.infer<typeof cashflowEntryListSchema>;
 export type AssetPrice = z.infer<typeof assetPriceSchema>;
 export type AssetPriceList = z.infer<typeof assetPriceListSchema>;
+export type Position = z.infer<typeof positionSchema>;
+export type PositionList = z.infer<typeof positionListSchema>;
+export type PositionOverview = z.infer<typeof positionOverviewSchema>;
 export type ReportTemplate = z.infer<typeof reportTemplateSchema>;
 export type ReportTemplateList = z.infer<typeof reportTemplateListSchema>;
 export type ReportExecution = z.infer<typeof reportExecutionSchema>;

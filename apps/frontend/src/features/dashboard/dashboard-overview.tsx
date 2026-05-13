@@ -7,6 +7,7 @@ import {
   ClipboardList,
   DollarSign,
   Landmark,
+  PieChart,
   Wallet,
 } from "lucide-react";
 
@@ -18,8 +19,10 @@ import {
   fetchAssets,
   fetchCashflowEntries,
   fetchOperations,
+  fetchPositionOverview,
   fetchPortfolios,
 } from "@/lib/api/entities";
+import { formatCurrency, formatPercentage } from "@/lib/formatters";
 
 const summaryCards = [
   {
@@ -52,6 +55,12 @@ const summaryCards = [
     icon: DollarSign,
     description: "Precos historicos para validacao e mark-to-market futuro.",
   },
+  {
+    key: "positions",
+    label: "Posicoes",
+    icon: PieChart,
+    description: "Posicoes abertas com consolidacao inicial por carteira e ativo.",
+  },
 ] as const;
 
 export function DashboardOverview() {
@@ -60,19 +69,25 @@ export function DashboardOverview() {
   const operationsQuery = useQuery({ queryKey: ["dashboard", "operations"], queryFn: fetchOperations });
   const cashflowQuery = useQuery({ queryKey: ["dashboard", "cashflow"], queryFn: fetchCashflowEntries });
   const pricingQuery = useQuery({ queryKey: ["dashboard", "pricing"], queryFn: fetchAssetPrices });
+  const positionsOverviewQuery = useQuery({
+    queryKey: ["dashboard", "positions", "overview"],
+    queryFn: () => fetchPositionOverview(),
+  });
 
   const loading =
     portfoliosQuery.isLoading ||
     assetsQuery.isLoading ||
     operationsQuery.isLoading ||
     cashflowQuery.isLoading ||
-    pricingQuery.isLoading;
+    pricingQuery.isLoading ||
+    positionsOverviewQuery.isLoading;
   const hasError =
     portfoliosQuery.isError ||
     assetsQuery.isError ||
     operationsQuery.isError ||
     cashflowQuery.isError ||
-    pricingQuery.isError;
+    pricingQuery.isError ||
+    positionsOverviewQuery.isError;
   const recentOperations = operationsQuery.data?.slice(0, 5) ?? [];
   const recentCashflow = cashflowQuery.data?.slice(0, 4) ?? [];
 
@@ -82,6 +97,7 @@ export function DashboardOverview() {
     operations: operationsQuery.data?.length ?? 0,
     cashflow: cashflowQuery.data?.length ?? 0,
     pricing: pricingQuery.data?.length ?? 0,
+    positions: positionsOverviewQuery.data?.open_positions ?? 0,
   };
 
   return (
@@ -122,6 +138,45 @@ export function DashboardOverview() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-lg border border-border bg-surface p-6 shadow-panel xl:col-span-2">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-ink">Posicao consolidada</h2>
+                  <p className="mt-1 text-sm text-muted">
+                    Snapshot inicial baseado em operacoes aprovadas ou liquidadas e nos ultimos precos disponiveis.
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted" />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg border border-border px-4 py-4">
+                  <div className="text-sm text-muted">Custo consolidado</div>
+                  <div className="mt-2 text-2xl font-semibold text-ink">
+                    {formatCurrency(positionsOverviewQuery.data?.total_cost_basis)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border px-4 py-4">
+                  <div className="text-sm text-muted">Valor de mercado</div>
+                  <div className="mt-2 text-2xl font-semibold text-ink">
+                    {formatCurrency(positionsOverviewQuery.data?.total_market_value)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border px-4 py-4">
+                  <div className="text-sm text-muted">PnL nao realizado</div>
+                  <div className="mt-2 text-2xl font-semibold text-ink">
+                    {formatCurrency(positionsOverviewQuery.data?.total_unrealized_pnl)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border px-4 py-4">
+                  <div className="text-sm text-muted">Cobertura de precos</div>
+                  <div className="mt-2 text-2xl font-semibold text-ink">
+                    {formatPercentage(positionsOverviewQuery.data?.pricing_coverage_pct)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-lg border border-border bg-surface p-6 shadow-panel">
               <div className="mb-5 flex items-center justify-between">
                 <div>

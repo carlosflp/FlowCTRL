@@ -49,6 +49,7 @@ Cada modulo principal segue o padrao:
 - `operations`: lancamentos operacionais com auditoria
 - `cashflow`: eventos de caixa ligados ou nao a operacoes
 - `pricing`: precos historicos e validacao por fonte
+- `positions`: consolidacao read-only por carteira e ativo
 - `reports`: templates, execucoes assincronas e artefatos em storage
 - `audit`: trilha de alteracoes relevantes
 
@@ -90,10 +91,11 @@ Hoje a plataforma ja oferece:
 - login JWT com usuario admin bootstrapado por ambiente
 - autorizacao por papeis (`admin`, `manager`, `analyst`, `viewer`)
 - CRUD inicial para portfolios, assets, operations, cashflow e pricing
+- consolidacao inicial de posicao por carteira e ativo
 - templates e execucoes de relatorios com enfileiramento Celery
 - geracao de CSV, XLSX e PDF com persistencia no MinIO
 - dashboard inicial com contagens operacionais
-- telas protegidas para carteiras, ativos, operacoes, caixa, precos e relatorios
+- telas protegidas para carteiras, ativos, operacoes, caixa, precos, posicoes e relatorios
 - worker Celery ativo para geracao assincrona de relatorios
 
 ## Evolucao esperada

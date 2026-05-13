@@ -104,6 +104,44 @@ export const assetPriceSchema = z.object({
   }),
 });
 
+export const positionSchema = z.object({
+  as_of_date: z.string(),
+  portfolio: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    base_currency: z.string(),
+  }),
+  asset: z.object({
+    id: z.string().uuid(),
+    ticker: z.string(),
+    name: z.string(),
+    asset_type: z.string(),
+  }),
+  quantity: z.string(),
+  average_cost: z.string(),
+  total_cost_basis: z.string(),
+  latest_price: z.string().nullable(),
+  latest_price_date: z.string().nullable(),
+  price_source: z.string().nullable(),
+  is_price_validated: z.boolean().nullable(),
+  market_value: z.string().nullable(),
+  unrealized_pnl: z.string().nullable(),
+  unrealized_pnl_pct: z.string().nullable(),
+  last_trade_date: z.string(),
+  operation_count: z.number(),
+});
+
+export const positionOverviewSchema = z.object({
+  as_of_date: z.string(),
+  open_positions: z.number(),
+  priced_positions: z.number(),
+  unpriced_positions: z.number(),
+  total_cost_basis: z.string(),
+  total_market_value: z.string(),
+  total_unrealized_pnl: z.string(),
+  pricing_coverage_pct: z.string(),
+});
+
 export const reportTemplateSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -150,5 +188,6 @@ export const assetListSchema = z.array(assetSchema);
 export const operationListSchema = z.array(operationSchema);
 export const cashflowEntryListSchema = z.array(cashflowEntrySchema);
 export const assetPriceListSchema = z.array(assetPriceSchema);
+export const positionListSchema = z.array(positionSchema);
 export const reportTemplateListSchema = z.array(reportTemplateSchema);
 export const reportExecutionListSchema = z.array(reportExecutionSchema);
