@@ -49,7 +49,7 @@ Cada modulo principal segue o padrao:
 - `operations`: lancamentos operacionais com auditoria
 - `cashflow`: eventos de caixa ligados ou nao a operacoes
 - `pricing`: precos historicos e validacao por fonte
-- `reports`: templates e execucoes futuras
+- `reports`: templates, execucoes assincronas e artefatos em storage
 - `audit`: trilha de alteracoes relevantes
 
 ## Fluxo backend, frontend e worker
@@ -58,7 +58,7 @@ Cada modulo principal segue o padrao:
 2. O backend valida autenticacao e regras de negocio
 3. O backend persiste dados no PostgreSQL
 4. O Redis funciona como broker e backend do Celery
-5. O worker executa tarefas assincronas, com foco futuro em relatorios e rotinas operacionais
+5. O worker executa tarefas assincronas, com foco atual em relatorios e com espaco para futuras rotinas operacionais
 6. O MinIO armazena artefatos grandes, como CSV, XLSX e PDF
 
 ## Papel de PostgreSQL, Redis e MinIO
@@ -90,9 +90,11 @@ Hoje a plataforma ja oferece:
 - login JWT com usuario admin bootstrapado por ambiente
 - autorizacao por papeis (`admin`, `manager`, `analyst`, `viewer`)
 - CRUD inicial para portfolios, assets, operations, cashflow e pricing
+- templates e execucoes de relatorios com enfileiramento Celery
+- geracao de CSV, XLSX e PDF com persistencia no MinIO
 - dashboard inicial com contagens operacionais
 - telas protegidas para carteiras, ativos, operacoes, caixa, precos e relatorios
-- worker Celery preparado para a proxima etapa de geracao assincrona
+- worker Celery ativo para geracao assincrona de relatorios
 
 ## Evolucao esperada
 
@@ -101,7 +103,7 @@ Essa fundacao permite avancar para:
 - gestao de usuarios e perfis pela interface
 - calculo de posicao consolidada
 - consolidacao de caixa por carteira
-- geracao assincrona de relatorios
+- filtros mais ricos e catalogo ampliado de relatorios
 - trilha de auditoria com usuario autenticado
 - conciliacao operacional
 - camadas de risco, liquidez e vencimentos

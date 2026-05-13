@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Annotated
 import uuid
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -73,6 +73,10 @@ WriteAccessUser = Annotated[
     Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.ANALYST)),
 ]
 DeleteAccessUser = Annotated[
+    User,
+    Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
+]
+ManageAccessUser = Annotated[
     User,
     Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
 ]

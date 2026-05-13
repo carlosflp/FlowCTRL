@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text
@@ -31,8 +31,14 @@ class ReportTemplate(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 class ReportExecution(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "report_executions"
 
-    template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("report_templates.id"), nullable=False)
-    portfolio_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("portfolios.id"), nullable=True)
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("report_templates.id"),
+        nullable=False,
+    )
+    portfolio_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("portfolios.id"),
+        nullable=True,
+    )
     status: Mapped[ReportExecutionStatus] = mapped_column(
         Enum(ReportExecutionStatus, name="report_execution_status", native_enum=False),
         default=ReportExecutionStatus.QUEUED,

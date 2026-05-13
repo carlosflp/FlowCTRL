@@ -104,6 +104,40 @@ export const assetPriceSchema = z.object({
   }),
 });
 
+export const reportTemplateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  template_type: z.enum(["csv", "xlsx", "pdf"]),
+  config_json: z.record(z.unknown()).nullable(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const reportExecutionSchema = z.object({
+  id: z.string().uuid(),
+  template_id: z.string().uuid(),
+  portfolio_id: z.string().uuid().nullable(),
+  status: z.enum(["queued", "running", "completed", "failed"]),
+  parameters_json: z.record(z.unknown()).nullable(),
+  file_path: z.string().nullable(),
+  file_type: z.string().nullable(),
+  created_at: z.string(),
+  finished_at: z.string().nullable(),
+  template: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    template_type: z.enum(["csv", "xlsx", "pdf"]),
+  }),
+  portfolio: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string(),
+    })
+    .nullable(),
+});
+
 export const authTokenSchema = z.object({
   access_token: z.string(),
   token_type: z.string(),
@@ -116,3 +150,5 @@ export const assetListSchema = z.array(assetSchema);
 export const operationListSchema = z.array(operationSchema);
 export const cashflowEntryListSchema = z.array(cashflowEntrySchema);
 export const assetPriceListSchema = z.array(assetPriceSchema);
+export const reportTemplateListSchema = z.array(reportTemplateSchema);
+export const reportExecutionListSchema = z.array(reportExecutionSchema);

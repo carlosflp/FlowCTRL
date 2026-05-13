@@ -8,6 +8,11 @@ type RequestOptions = {
   token?: string | null;
 };
 
+export type DownloadResult = {
+  blob: Blob;
+  filename: string | null;
+};
+
 export class ApiError extends Error {
   status: number;
   detail: string | null;
@@ -92,4 +97,32 @@ export async function apiPost<TResponse, TBody extends object>(
   });
 
   return parseResponse(response, schema);
+}
+
+export async function apiDownload(
+  path: string,
+  options: RequestOptions = {},
+): Promise<DownloadResult> {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: buildHeaders(options),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const detail =
+      data && typeof data === "object" && "detail" in data && typeof data.detail === "string"
+        ? data.detail
+        : null;
+    throw new ApiError(`Request failed with status ${response.status}.`, response.status, detail);
+  }
+
+  const filename = response.headers
+    .get("content-disposition")
+    ?.match(/filename="([^"]+)"/)?.[1] ?? null;
+
+  return {
+    blob: await response.blob(),
+    filename,
+  };
 }

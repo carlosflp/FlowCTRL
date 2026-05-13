@@ -137,6 +137,11 @@ Campos principais:
 - `created_at`
 - `finished_at`
 
+Observacao pratica:
+
+- `file_path` guarda a chave do objeto no bucket do MinIO
+- `file_type` guarda a extensao logica do artefato (`csv`, `xlsx`, `pdf`)
+
 ### AuditLog
 
 Registro generico de alteracoes relevantes.
@@ -183,7 +188,7 @@ Valores monetarios e quantidades foram modelados com precisao decimal via SQLAlc
 
 ### Tabelas de suporte ja ativas
 
-`cashflow`, `pricing`, `reports` e `audit` ja fazem parte do modelo principal. Nesta etapa, `cashflow` e `pricing` deixaram de ser apenas preparacao estrutural e passaram a ter CRUD operacional.
+`cashflow`, `pricing`, `reports` e `audit` ja fazem parte do modelo principal. Nesta etapa, `cashflow`, `pricing` e `reports` deixaram de ser apenas preparacao estrutural e passaram a ter fluxo operacional utilizavel.
 
 ### Restricoes importantes
 

@@ -10,8 +10,9 @@ The repository now includes:
 - JWT authentication with local admin bootstrap
 - role-based authorization (`admin`, `manager`, `analyst`, `viewer`)
 - CRUD APIs for portfolios, assets, operations, cashflow and pricing
+- async reporting with Celery and MinIO
 - audit logging for operations, cashflow and pricing changes
-- a Next.js frontend with login, protected routes, dashboard and operational list views
+- a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
 ## Technical adjustments adopted
@@ -84,6 +85,16 @@ Some small structural adjustments were kept from the original proposal because t
 - list screens for cashflow and pricing
 - business validation for operation-to-portfolio cashflow links
 - uniqueness validation for asset price by asset, date and source
+
+### Stage 4: asynchronous reports
+
+- default report templates seeded during bootstrap
+- report template read/create/update endpoints
+- report execution endpoints with Celery queueing
+- CSV, XLSX and PDF generation in the worker
+- artifact storage in MinIO
+- authenticated download endpoint
+- report execution screen with queue status polling and download
 
 ## Roles
 
@@ -243,20 +254,33 @@ npm run build
 - `PUT /api/v1/pricing/{price_id}`
 - `DELETE /api/v1/pricing/{price_id}`
 
+### Reports
+
+- `GET /api/v1/reports/templates`
+- `POST /api/v1/reports/templates`
+- `GET /api/v1/reports/templates/{template_id}`
+- `PUT /api/v1/reports/templates/{template_id}`
+- `GET /api/v1/reports/executions`
+- `POST /api/v1/reports/executions`
+- `GET /api/v1/reports/executions/{execution_id}`
+- `GET /api/v1/reports/executions/{execution_id}/download`
+
 ## Validation performed
 
 Validated in the current stage:
 
 - Docker Compose stack running locally
 - backend health endpoint responding `200`
-- backend test suite prepared with `12` tests
+- backend test suite passing with `15` tests
 - frontend production build passing
-- frontend routes for `/login`, `/cashflow` and `/pricing` compiling successfully
+- frontend routes for `/login`, `/cashflow`, `/pricing` and `/reports` compiling successfully
+- worker task `reports.generate_execution` loaded and executed successfully
+- real report execution completed locally with artifact download returning `200`
 
 ## Recommended next steps
 
 1. Add user management endpoints and an admin screen for role assignment.
-2. Build report template CRUD and asynchronous report execution with Celery and MinIO.
-3. Add position and cash consolidation services for dashboard and portfolio views.
+2. Add position and cash consolidation services for dashboard and portfolio views.
+3. Expand report filters by date range, portfolio scope and custom columns.
 4. Expand audit context with authenticated user attribution.
 5. Add CI for backend tests, frontend build and linting.

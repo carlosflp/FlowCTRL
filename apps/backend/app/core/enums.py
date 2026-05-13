@@ -58,6 +58,13 @@ class ReportTemplateType(StrEnum):
     PDF = "pdf"
 
 
+class ReportDatasetType(StrEnum):
+    OPERATIONS = "operations"
+    CASHFLOW = "cashflow"
+    PRICING = "pricing"
+    PORTFOLIOS = "portfolios"
+
+
 class ReportExecutionStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"

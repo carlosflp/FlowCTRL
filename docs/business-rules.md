@@ -62,6 +62,8 @@ Ja foi implementado registro basico de auditoria para:
 - `operations`
 - `cashflow_entries`
 - `asset_prices`
+- `report_templates`
+- `report_executions`
 
 Em cada um desses dominios:
 
@@ -97,8 +99,19 @@ Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, 
 
 ### Relatorios
 
+Nesta etapa, os relatorios passaram a operar com as seguintes regras:
+
+- todo `ReportExecution` deve apontar para um `ReportTemplate` valido
+- templates inativos nao podem ser executados
+- o worker atualiza o ciclo `queued -> running -> completed | failed`
+- artefatos gerados sao gravados no MinIO e nao no banco
+- downloads sao autenticados pela API
+- o `file_path` persistido representa a chave do objeto no bucket
+
+Proximas expansoes naturais:
+
 - posicoes consolidadas
 - extrato operacional por carteira
 - relatorio de movimentacao de caixa
 - relatorio gerencial por periodo
-- exportacao assincrona com arquivos armazenados no MinIO
+- filtros por periodo, carteira e dataset
