@@ -1,16 +1,26 @@
 # FlowCTRL
 
-Base inicial de uma plataforma operacional para gestão interna de uma asset financeira, com foco em controle de carteiras, ativos, operações, caixa, auditoria e geração futura de relatórios.
+FlowCTRL is the initial foundation of an internal platform for asset managers, focused on operational control of portfolios, assets, operations, cash events, audit trails and future reporting workflows.
 
-## Ajustes técnicos adotados
+## Current stage
 
-Antes da implementação, foram aplicados três ajustes pequenos para melhorar a escalabilidade sem aumentar a complexidade:
+The repository now includes:
 
-- o repositório raiz já funciona como diretório principal do produto, então não foi criada uma pasta extra `asset-platform/`;
-- o backend ganhou uma camada `app/db/` para concentrar sessão, base ORM e metadata;
-- cada módulo de domínio foi separado em `models`, `schemas`, `service` e `router`, mantendo o monolito simples, mas realmente modular.
+- a modular FastAPI backend with JWT authentication
+- seeded local admin bootstrap
+- role-based authorization (`admin`, `manager`, `analyst`, `viewer`)
+- a Next.js frontend with login flow and protected routes
+- PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
-## Stack utilizada
+## Technical adjustments adopted
+
+Three structural choices were kept from the first stage because they give the project room to grow without making it heavy too early:
+
+- the repository root is already the product root, so there is no extra `asset-platform/` wrapper folder
+- the backend has an explicit `app/db/` layer for ORM base, session and metadata bootstrap
+- each domain module follows `models`, `schemas`, `service` and `router`
+
+## Stack
 
 ### Frontend
 
@@ -21,7 +31,6 @@ Antes da implementação, foram aplicados três ajustes pequenos para melhorar a
 - TanStack Table
 - React Hook Form
 - Zod
-- Lucide React
 
 ### Backend
 
@@ -38,7 +47,7 @@ Antes da implementação, foram aplicados três ajustes pequenos para melhorar a
 - Ruff
 - MyPy
 
-### Infra local
+### Local infra
 
 - Docker
 - Docker Compose
@@ -46,56 +55,85 @@ Antes da implementação, foram aplicados três ajustes pequenos para melhorar a
 - Redis
 - MinIO
 
-## Como rodar localmente
+## Authentication stage
 
-1. Copie o arquivo de ambiente:
+This stage added:
+
+- JWT access token login
+- password hashing with PBKDF2-SHA256
+- role-based authorization for protected endpoints
+- default admin bootstrap from environment variables
+- frontend login page and session provider
+
+### Roles
+
+- `admin`: full access
+- `manager`: read, create, update and delete domain records
+- `analyst`: read, create and update domain records
+- `viewer`: read-only access
+
+### Seeded admin
+
+The backend bootstraps a default admin during container startup after migrations.
+
+Environment variables used for that:
+
+- `APP_ADMIN_EMAIL`
+- `APP_ADMIN_PASSWORD`
+- `APP_ADMIN_NAME`
+- `JWT_SECRET_KEY`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+
+## Running locally
+
+1. Copy the environment file:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-2. Suba os serviços:
+2. Start the stack:
 
 ```powershell
 docker compose --env-file .env -f infra/compose.yaml up --build
 ```
 
-3. Acesse:
+3. Open:
 
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
 - MinIO Console: `http://localhost:9001`
 
-## Como rodar migrations
+## Migrations
 
-Com Docker:
+With Docker:
 
 ```powershell
 docker compose --env-file .env -f infra/compose.yaml exec backend alembic -c alembic.ini upgrade head
 ```
 
-Localmente dentro de `apps/backend`:
+Locally inside `apps/backend`:
 
 ```powershell
 alembic -c alembic.ini upgrade head
 ```
 
-## Como rodar testes
+## Tests
 
-Com o ambiente Python preparado em `apps/backend`:
+Backend tests:
 
 ```powershell
 pytest
 ```
 
-Ou via container:
+Or through Docker:
 
 ```powershell
 docker compose --env-file .env -f infra/compose.yaml exec backend pytest
 ```
 
-## Estrutura de pastas
+## Folder structure
 
 ```text
 .
@@ -127,12 +165,17 @@ docker compose --env-file .env -f infra/compose.yaml exec backend pytest
 └── README.md
 ```
 
-## Endpoints já disponíveis
+## Available endpoints
 
-### Infra e apoio
+### Infra
 
 - `GET /health`
+
+### Auth
+
 - `GET /api/v1/auth/status`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
 
 ### Portfolios
 
@@ -158,11 +201,19 @@ docker compose --env-file .env -f infra/compose.yaml exec backend pytest
 - `PUT /api/v1/operations/{operation_id}`
 - `DELETE /api/v1/operations/{operation_id}`
 
-## Próximos passos recomendados
+## Validation performed
 
-1. Implementar autenticação real e autorização por perfis.
-2. Criar geração assíncrona de relatórios com Celery e MinIO.
-3. Introduzir cálculo de posição e visão consolidada por carteira.
-4. Expor CRUDs adicionais para preços, caixa, templates e execuções de relatório.
-5. Evoluir auditoria para cobrir mais entidades e contexto do usuário.
-6. Adicionar seeds, factories e testes mais amplos de integração.
+What was validated in this stage:
+
+- backend test suite: `8 passed`
+- frontend production build: passed
+
+I also attempted a fresh Docker Compose smoke test, but at that moment the local Docker daemon was unavailable on this machine, so I could not complete that final runtime check from here.
+
+## Recommended next steps
+
+1. Add user management endpoints and an admin screen for role assignment.
+2. Extend authorization to cashflow, pricing and reports as those modules gain CRUD flows.
+3. Introduce refresh tokens or an http-only cookie session model.
+4. Build cashflow and pricing modules next.
+5. Start the asynchronous report generation pipeline with Celery and MinIO.

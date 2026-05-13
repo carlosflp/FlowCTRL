@@ -2,20 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, ClipboardList, FileSpreadsheet, LayoutGrid } from "lucide-react";
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  ClipboardList,
+  FileSpreadsheet,
+  LayoutGrid,
+  LogOut,
+} from "lucide-react";
 
+import { useAuth } from "@/features/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/portfolios", label: "Carteiras", icon: BriefcaseBusiness },
   { href: "/assets", label: "Ativos", icon: BarChart3 },
-  { href: "/operations", label: "Operações", icon: ClipboardList },
-  { href: "/reports", label: "Relatórios", icon: FileSpreadsheet },
+  { href: "/operations", label: "Operacoes", icon: ClipboardList },
+  { href: "/reports", label: "Relatorios", icon: FileSpreadsheet },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -25,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">FlowCTRL</div>
             <div className="mt-2 text-2xl font-semibold text-ink">Asset Platform</div>
             <p className="mt-2 max-w-xs text-sm leading-6 text-muted">
-              Base operacional para controle de carteiras, ativos, operações e relatórios internos.
+              Operational control for portfolios, assets, transactions and reporting workflows.
             </p>
           </div>
 
@@ -56,13 +65,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="border-t border-border px-7 py-5 text-sm text-muted">
-            Ambiente local com Next.js, FastAPI, PostgreSQL, Redis e MinIO.
+            <div className="font-medium text-ink">{user?.full_name}</div>
+            <div className="mt-1 lowercase">{user?.role}</div>
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink transition hover:bg-[#f0efeb]"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </button>
           </div>
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="border-b border-border bg-surface px-5 py-4 lg:hidden">
-            <div className="text-lg font-semibold">FlowCTRL</div>
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-semibold">FlowCTRL</div>
+              <button
+                type="button"
+                onClick={logout}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </div>
           </header>
           <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8">{children}</main>
         </div>
@@ -70,4 +98,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

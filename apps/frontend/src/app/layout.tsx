@@ -1,24 +1,20 @@
 import type { Metadata } from "next";
 
-import { AppShell } from "@/components/app-shell";
-import { QueryProvider } from "@/lib/query-provider";
+import { RootProviders } from "@/components/root-providers";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "FlowCTRL | Asset Platform",
-  description: "Plataforma operacional para gestão de carteiras e operações de uma asset financeira.",
+  description: "Operational platform for portfolio and investment operations management.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body>
-        <QueryProvider>
-          <AppShell>{children}</AppShell>
-        </QueryProvider>
+        <RootProviders>{children}</RootProviders>
       </body>
     </html>
   );
 }
-
