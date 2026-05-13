@@ -1,7 +1,9 @@
 from datetime import datetime
 import uuid
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.enums import UserRole
 
 
 class UserRead(BaseModel):
@@ -12,6 +14,7 @@ class UserRead(BaseModel):
     full_name: str
     is_active: bool
     is_superuser: bool
+    role: UserRole
     created_at: datetime
     updated_at: datetime
 
@@ -19,7 +22,7 @@ class UserRead(BaseModel):
 class UserCreate(BaseModel):
     email: str
     full_name: str
-    hashed_password: str | None = None
+    password: str = Field(min_length=8)
+    role: UserRole = UserRole.VIEWER
     is_active: bool = True
     is_superuser: bool = False
-

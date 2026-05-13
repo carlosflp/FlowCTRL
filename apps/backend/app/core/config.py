@@ -21,6 +21,15 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     redis_url: str = Field(default="redis://redis:6379/0", alias="REDIS_URL")
+    jwt_secret_key: str = Field(
+        default="change-me-in-local-env-with-at-least-32-bytes",
+        alias="JWT_SECRET_KEY",
+    )
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    app_admin_email: str = Field(default="admin@flowctrl.local", alias="APP_ADMIN_EMAIL")
+    app_admin_password: str = Field(default="ChangeMe123!", alias="APP_ADMIN_PASSWORD")
+    app_admin_name: str = Field(default="Platform Admin", alias="APP_ADMIN_NAME")
 
     minio_endpoint: str = Field(default="minio:9000", alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")

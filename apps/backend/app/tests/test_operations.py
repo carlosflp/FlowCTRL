@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 
-def test_create_operation(client: TestClient) -> None:
+def test_create_operation(client: TestClient, admin_auth_headers: dict[str, str]) -> None:
     portfolio_response = client.post(
         "/api/v1/portfolios",
         json={
@@ -11,6 +11,7 @@ def test_create_operation(client: TestClient) -> None:
             "benchmark": "IMA-B",
             "is_active": True,
         },
+        headers=admin_auth_headers,
     )
     asset_response = client.post(
         "/api/v1/assets",
@@ -23,6 +24,7 @@ def test_create_operation(client: TestClient) -> None:
             "maturity_date": "2030-01-10",
             "is_active": True,
         },
+        headers=admin_auth_headers,
     )
 
     operation_payload = {
@@ -39,7 +41,7 @@ def test_create_operation(client: TestClient) -> None:
         "notes": "Compra inicial da posição.",
     }
 
-    response = client.post("/api/v1/operations", json=operation_payload)
+    response = client.post("/api/v1/operations", json=operation_payload, headers=admin_auth_headers)
 
     assert response.status_code == 201
     data = response.json()
@@ -47,4 +49,3 @@ def test_create_operation(client: TestClient) -> None:
     assert data["status"] == "approved"
     assert data["portfolio"]["name"] == "Crédito Privado"
     assert data["asset"]["ticker"] == "DEB-ALFA-01"
-

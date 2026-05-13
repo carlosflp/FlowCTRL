@@ -70,3 +70,9 @@ class AuditAction(str, Enum):
     UPDATED = "updated"
     DELETED = "deleted"
 
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    ANALYST = "analyst"
+    VIEWER = "viewer"
