@@ -42,7 +42,7 @@ Cada modulo principal segue o padrao:
 
 ## Modulos atuais
 
-- `users`: usuarios internos, perfis e bootstrap de administrador
+- `users`: usuarios internos, perfis, bootstrap de administrador e administracao de acesso
 - `auth`: autenticacao JWT e autorizacao por papel
 - `portfolios`: carteiras e fundos sob gestao
 - `assets`: cadastro mestre de ativos
@@ -89,7 +89,9 @@ Simula um S3 local sem custo e permite:
 Hoje a plataforma ja oferece:
 
 - login JWT com usuario admin bootstrapado por ambiente
+- bootstrap opcional de usuario nao-admin por ambiente para testes operacionais
 - autorizacao por papeis (`admin`, `manager`, `analyst`, `viewer`)
+- gestao administrativa de usuarios pela interface para criacao e revisao de perfis
 - CRUD inicial para portfolios, assets, operations, cashflow e pricing
 - consolidacao inicial de posicao por carteira e ativo
 - templates e execucoes de relatorios com enfileiramento Celery
@@ -105,6 +107,7 @@ Essa fundacao permite avancar para:
 - gestao de usuarios e perfis pela interface
 - calculo de posicao consolidada
 - consolidacao de caixa por carteira
+- autosservico basico de conta para usuarios internos
 - filtros mais ricos e catalogo ampliado de relatorios
 - trilha de auditoria com usuario autenticado
 - conciliacao operacional

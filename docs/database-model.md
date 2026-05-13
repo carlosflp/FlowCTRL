@@ -18,6 +18,12 @@ Campos principais:
 - `created_at`
 - `updated_at`
 
+Estado atual:
+
+- a entidade `User` ja participa de autenticacao, autorizacao e administracao operacional pela interface
+- a senha continua armazenada apenas como hash
+- a manutencao dos usuarios deixou de depender exclusivamente do bootstrap por ambiente
+
 ### Portfolio
 
 Representa carteira, fundo ou estrategia gerida.
@@ -205,6 +211,7 @@ Valores monetarios e quantidades foram modelados com precisao decimal via SQLAlc
 - `asset_prices` possui unicidade por `asset_id + price_date + source`
 - `cashflow_entries.operation_id` e opcional
 - `audit_logs.user_id` continua opcional nesta fase para nao travar o bootstrap inicial
+- a aplicacao protege a existencia de pelo menos um admin ativo durante a administracao de usuarios
 
 ### Enumeracoes explicitas
 

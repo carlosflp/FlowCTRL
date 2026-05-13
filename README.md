@@ -11,6 +11,7 @@ The repository now includes:
 - role-based authorization (`admin`, `manager`, `analyst`, `viewer`)
 - CRUD APIs for portfolios, assets, operations, cashflow and pricing
 - consolidated position endpoints by portfolio and asset
+- administrative user management APIs and admin screen
 - async reporting with Celery and MinIO
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
@@ -105,6 +106,14 @@ Some small structural adjustments were kept from the original proposal because t
 - weighted-average cost basis with latest-price mark-to-market
 - frontend position screen with operational filters
 
+### Stage 6: user administration
+
+- admin-only user management endpoints
+- protected user administration screen in the frontend
+- create and update workflows for internal accounts
+- role and active-status management without relying on `.env`
+- safeguards to avoid removing the last active admin
+
 ## Roles
 
 - `admin`: full access
@@ -121,6 +130,10 @@ Environment variables used for that:
 - `APP_ADMIN_EMAIL`
 - `APP_ADMIN_PASSWORD`
 - `APP_ADMIN_NAME`
+- `APP_DEFAULT_USER_EMAIL`
+- `APP_DEFAULT_USER_PASSWORD`
+- `APP_DEFAULT_USER_NAME`
+- `APP_DEFAULT_USER_ROLE`
 - `JWT_SECRET_KEY`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 
@@ -223,6 +236,13 @@ npm run build
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
 
+### Users
+
+- `GET /api/v1/users`
+- `POST /api/v1/users`
+- `GET /api/v1/users/{user_id}`
+- `PUT /api/v1/users/{user_id}`
+
 ### Portfolios
 
 - `GET /api/v1/portfolios`
@@ -285,16 +305,16 @@ Validated in the current stage:
 
 - Docker Compose stack running locally
 - backend health endpoint responding `200`
-- backend test suite passing with `18` tests
+- backend test suite passing with `22` tests
 - frontend production build passing
-- frontend routes for `/login`, `/cashflow`, `/pricing`, `/positions` and `/reports` compiling successfully
+- frontend routes for `/login`, `/cashflow`, `/pricing`, `/positions`, `/reports` and `/users` compiling successfully
 - worker task `reports.generate_execution` loaded and executed successfully
 - real report execution completed locally with artifact download returning `200`
 
 ## Recommended next steps
 
-1. Add user management endpoints and an admin screen for role assignment.
-2. Expand position handling for corporate actions, transfers and richer valuation rules.
+1. Expand position handling for corporate actions, transfers and richer valuation rules.
+2. Add user self-service for password change and profile maintenance.
 3. Expand report filters by date range, portfolio scope and custom columns.
-4. Expand audit context with authenticated user attribution.
+4. Expand audit context with authenticated user attribution across all domains.
 5. Add CI for backend tests, frontend build and linting.

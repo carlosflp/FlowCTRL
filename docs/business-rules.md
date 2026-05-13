@@ -74,6 +74,20 @@ Em cada um desses dominios:
 
 Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, revisao interna e compliance operacional.
 
+## Regras iniciais de usuarios e perfis
+
+O modulo administrativo de usuarios entrou com foco em governanca operacional basica.
+
+Regras aplicadas:
+
+- apenas usuarios com perfil `admin` podem acessar a administracao de usuarios
+- criacao e edicao de usuarios ja podem ser feitas pela interface
+- o ambiente local pode bootstrapar um usuario nao-admin opcional para validacao da experiencia restrita
+- email deve ser unico
+- `role=admin` implica privilegio administrativo efetivo
+- a plataforma impede a remocao do ultimo admin ativo
+- a tela administrativa protege o usuario autenticado contra perda acidental do proprio acesso
+
 ## Regras iniciais de posicao
 
 O modulo de posicao entrou como consolidacao read-only, sem tabela dedicada nesta fase.
