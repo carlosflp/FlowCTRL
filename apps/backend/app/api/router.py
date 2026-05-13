@@ -8,6 +8,7 @@ from app.modules.portfolios.router import router as portfolios_router
 from app.modules.positions.router import router as positions_router
 from app.modules.pricing.router import router as pricing_router
 from app.modules.reports.router import router as reports_router
+from app.modules.users.router import router as users_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -18,3 +19,4 @@ api_router.include_router(cashflow_router)
 api_router.include_router(pricing_router)
 api_router.include_router(positions_router)
 api_router.include_router(reports_router)
+api_router.include_router(users_router)

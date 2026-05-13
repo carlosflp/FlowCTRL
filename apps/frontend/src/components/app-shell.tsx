@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   LogOut,
   PieChart,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 
@@ -26,11 +27,15 @@ const navigation = [
   { href: "/pricing", label: "Precos", icon: DollarSign },
   { href: "/positions", label: "Posicoes", icon: PieChart },
   { href: "/reports", label: "Relatorios", icon: FileSpreadsheet },
-];
+] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const navigationItems =
+    user?.role === "admin"
+      ? [...navigation, { href: "/users", label: "Usuarios", icon: ShieldCheck }]
+      : navigation;
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -46,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="flex-1 px-4 py-5">
             <ul className="space-y-1">
-              {navigation.map((item) => {
+              {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
 

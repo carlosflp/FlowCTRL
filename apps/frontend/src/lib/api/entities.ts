@@ -9,8 +9,10 @@ import {
   reportExecutionListSchema,
   reportExecutionSchema,
   reportTemplateListSchema,
+  userListSchema,
+  userSchema,
 } from "@/lib/api/schemas";
-import { apiDownload, apiGet, apiPost, type DownloadResult } from "@/lib/api/client";
+import { apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
 import type {
   AssetList,
   AssetPriceList,
@@ -22,6 +24,8 @@ import type {
   ReportExecution,
   ReportExecutionList,
   ReportTemplateList,
+  User,
+  UserList,
 } from "@/types/domain";
 
 type PositionFilters = {
@@ -47,6 +51,10 @@ export function fetchPortfolios(): Promise<PortfolioList> {
   return apiGet("/portfolios", portfolioListSchema);
 }
 
+export function fetchUsers(): Promise<UserList> {
+  return apiGet("/users", userListSchema);
+}
+
 export function fetchAssets(): Promise<AssetList> {
   return apiGet("/assets", assetListSchema);
 }
@@ -69,6 +77,31 @@ export function fetchPositions(filters: PositionFilters = {}): Promise<PositionL
 
 export function fetchPositionOverview(filters: PositionFilters = {}): Promise<PositionOverview> {
   return apiGet(`/positions/overview${buildPositionQueryString(filters)}`, positionOverviewSchema);
+}
+
+export function createUser(payload: {
+  email: string;
+  full_name: string;
+  password: string;
+  role: "admin" | "manager" | "analyst" | "viewer";
+  is_active: boolean;
+  is_superuser?: boolean;
+}): Promise<User> {
+  return apiPost("/users", payload, userSchema);
+}
+
+export function updateUser(
+  userId: string,
+  payload: {
+    email?: string;
+    full_name?: string;
+    password?: string;
+    role?: "admin" | "manager" | "analyst" | "viewer";
+    is_active?: boolean;
+    is_superuser?: boolean;
+  },
+): Promise<User> {
+  return apiPut(`/users/${userId}`, payload, userSchema);
 }
 
 export function fetchReportTemplates(): Promise<ReportTemplateList> {

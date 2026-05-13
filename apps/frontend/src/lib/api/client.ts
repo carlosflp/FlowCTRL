@@ -99,6 +99,22 @@ export async function apiPost<TResponse, TBody extends object>(
   return parseResponse(response, schema);
 }
 
+export async function apiPut<TResponse, TBody extends object>(
+  path: string,
+  body: TBody,
+  schema: ZodType<TResponse>,
+  options: RequestOptions = {},
+): Promise<TResponse> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "PUT",
+    headers: buildHeaders(options),
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  return parseResponse(response, schema);
+}
+
 export async function apiDownload(
   path: string,
   options: RequestOptions = {},

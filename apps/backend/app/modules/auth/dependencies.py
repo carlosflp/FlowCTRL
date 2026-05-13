@@ -80,3 +80,7 @@ ManageAccessUser = Annotated[
     User,
     Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER)),
 ]
+AdminAccessUser = Annotated[
+    User,
+    Depends(require_roles(UserRole.ADMIN)),
+]

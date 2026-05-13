@@ -1,12 +1,14 @@
 import { z } from "zod";
 
+export const userRoleSchema = z.enum(["admin", "manager", "analyst", "viewer"]);
+
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string(),
   full_name: z.string(),
   is_active: z.boolean(),
   is_superuser: z.boolean(),
-  role: z.enum(["admin", "manager", "analyst", "viewer"]),
+  role: userRoleSchema,
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -183,6 +185,7 @@ export const authTokenSchema = z.object({
   user: userSchema,
 });
 
+export const userListSchema = z.array(userSchema);
 export const portfolioListSchema = z.array(portfolioSchema);
 export const assetListSchema = z.array(assetSchema);
 export const operationListSchema = z.array(operationSchema);

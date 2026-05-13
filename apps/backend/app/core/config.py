@@ -4,6 +4,8 @@ from typing import Annotated
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from app.core.enums import UserRole
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -30,6 +32,10 @@ class Settings(BaseSettings):
     app_admin_email: str = Field(default="admin@flowctrl.local", alias="APP_ADMIN_EMAIL")
     app_admin_password: str = Field(default="ChangeMe123!", alias="APP_ADMIN_PASSWORD")
     app_admin_name: str = Field(default="Platform Admin", alias="APP_ADMIN_NAME")
+    app_default_user_email: str | None = Field(default=None, alias="APP_DEFAULT_USER_EMAIL")
+    app_default_user_password: str | None = Field(default=None, alias="APP_DEFAULT_USER_PASSWORD")
+    app_default_user_name: str | None = Field(default=None, alias="APP_DEFAULT_USER_NAME")
+    app_default_user_role: UserRole = Field(default=UserRole.VIEWER, alias="APP_DEFAULT_USER_ROLE")
 
     minio_endpoint: str = Field(default="minio:9000", alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")
