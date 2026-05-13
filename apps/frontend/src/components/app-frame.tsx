@@ -39,12 +39,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isInitialized, isPublicRoute, router]);
 
-  if (!isInitialized) {
-    return <FullScreenState label="Loading session..." />;
-  }
-
   if (isPublicRoute) {
     return <>{children}</>;
+  }
+
+  if (!isInitialized) {
+    return <FullScreenState label="Loading session..." />;
   }
 
   if (!isAuthenticated) {
