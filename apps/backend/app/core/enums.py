@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AssetType(str, Enum):
+class AssetType(StrEnum):
     CASH = "cash"
     STOCK = "stock"
     BOND = "bond"
@@ -15,7 +15,7 @@ class AssetType(str, Enum):
     OTHER = "other"
 
 
-class OperationType(str, Enum):
+class OperationType(StrEnum):
     BUY = "buy"
     SELL = "sell"
     CONTRIBUTION = "contribution"
@@ -30,7 +30,7 @@ class OperationType(str, Enum):
     TRANSFER = "transfer"
 
 
-class OperationStatus(str, Enum):
+class OperationStatus(StrEnum):
     DRAFT = "draft"
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
@@ -39,39 +39,39 @@ class OperationStatus(str, Enum):
     REJECTED = "rejected"
 
 
-class CashflowEntryType(str, Enum):
+class CashflowEntryType(StrEnum):
     INFLOW = "inflow"
     OUTFLOW = "outflow"
     TRANSFER = "transfer"
     ADJUSTMENT = "adjustment"
 
 
-class CashflowStatus(str, Enum):
+class CashflowStatus(StrEnum):
     PENDING = "pending"
     SETTLED = "settled"
     CANCELLED = "cancelled"
 
 
-class ReportTemplateType(str, Enum):
+class ReportTemplateType(StrEnum):
     CSV = "csv"
     XLSX = "xlsx"
     PDF = "pdf"
 
 
-class ReportExecutionStatus(str, Enum):
+class ReportExecutionStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 
 
-class AuditAction(str, Enum):
+class AuditAction(StrEnum):
     CREATED = "created"
     UPDATED = "updated"
     DELETED = "deleted"
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     ADMIN = "admin"
     MANAGER = "manager"
     ANALYST = "analyst"

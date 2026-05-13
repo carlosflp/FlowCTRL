@@ -1,6 +1,6 @@
+import uuid
 from datetime import date
 from decimal import Decimal
-import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, ForeignKey, String, UniqueConstraint
@@ -15,7 +15,12 @@ if TYPE_CHECKING:
 class AssetPrice(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "asset_prices"
     __table_args__ = (
-        UniqueConstraint("asset_id", "price_date", "source", name="uq_asset_prices_asset_date_source"),
+        UniqueConstraint(
+            "asset_id",
+            "price_date",
+            "source",
+            name="uq_asset_prices_asset_date_source",
+        ),
     )
 
     asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assets.id"), nullable=False)

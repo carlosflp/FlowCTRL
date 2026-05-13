@@ -61,7 +61,10 @@ def create_operation(db: Session, payload: OperationCreate) -> Operation:
     _ensure_portfolio_exists(db, payload.portfolio_id)
     _ensure_asset_exists(db, payload.asset_id)
 
-    gross_value = payload.gross_value or _calculate_gross_value(payload.quantity, payload.unit_price)
+    gross_value = payload.gross_value or _calculate_gross_value(
+        payload.quantity,
+        payload.unit_price,
+    )
     net_value = payload.net_value or _calculate_net_value(gross_value, payload.fees, payload.taxes)
 
     operation = Operation(
@@ -97,7 +100,7 @@ def update_operation(db: Session, operation: Operation, payload: OperationUpdate
 
     if operation.settlement_date < operation.trade_date:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Settlement date must be on or after trade date.",
         )
 
@@ -106,8 +109,15 @@ def update_operation(db: Session, operation: Operation, payload: OperationUpdate
         gross_value = _calculate_gross_value(operation.quantity, operation.unit_price)
         operation.gross_value = gross_value
 
-    if any(key in updates for key in {"gross_value", "fees", "taxes", "quantity", "unit_price"}) and "net_value" not in updates:
-        operation.net_value = _calculate_net_value(operation.gross_value, operation.fees, operation.taxes)
+    should_recalculate_net_value = any(
+        key in updates for key in {"gross_value", "fees", "taxes", "quantity", "unit_price"}
+    )
+    if should_recalculate_net_value and "net_value" not in updates:
+        operation.net_value = _calculate_net_value(
+            operation.gross_value,
+            operation.fees,
+            operation.taxes,
+        )
 
     db.add(operation)
     db.flush()

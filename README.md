@@ -1,24 +1,27 @@
 # FlowCTRL
 
-FlowCTRL is the initial foundation of an internal platform for asset managers, focused on operational control of portfolios, assets, operations, cash events, audit trails and future reporting workflows.
+FlowCTRL is the foundation of an internal operating platform for an asset manager. The current base covers portfolio and asset master data, operations, cashflow events, asset prices, authentication, audit trail and the first protected frontend workflows.
 
 ## Current stage
 
 The repository now includes:
 
-- a modular FastAPI backend with JWT authentication
-- seeded local admin bootstrap
+- a modular FastAPI backend organized by domain
+- JWT authentication with local admin bootstrap
 - role-based authorization (`admin`, `manager`, `analyst`, `viewer`)
-- a Next.js frontend with login flow and protected routes
+- CRUD APIs for portfolios, assets, operations, cashflow and pricing
+- audit logging for operations, cashflow and pricing changes
+- a Next.js frontend with login, protected routes, dashboard and operational list views
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
 ## Technical adjustments adopted
 
-Three structural choices were kept from the first stage because they give the project room to grow without making it heavy too early:
+Some small structural adjustments were kept from the original proposal because they improve clarity without changing the spirit of the architecture:
 
 - the repository root is already the product root, so there is no extra `asset-platform/` wrapper folder
 - the backend has an explicit `app/db/` layer for ORM base, session and metadata bootstrap
 - each domain module follows `models`, `schemas`, `service` and `router`
+- the platform starts as a modular monolith, ready to grow without introducing microservices early
 
 ## Stack
 
@@ -55,9 +58,17 @@ Three structural choices were kept from the first stage because they give the pr
 - Redis
 - MinIO
 
-## Authentication stage
+## Implemented stages
 
-This stage added:
+### Stage 1: platform foundation
+
+- modular FastAPI application
+- SQLAlchemy models and Alembic setup
+- Docker Compose local stack
+- initial frontend shell and pages
+- base documentation and tests
+
+### Stage 2: authentication and authorization
 
 - JWT access token login
 - password hashing with PBKDF2-SHA256
@@ -65,14 +76,23 @@ This stage added:
 - default admin bootstrap from environment variables
 - frontend login page and session provider
 
-### Roles
+### Stage 3: cashflow and pricing
+
+- CRUD endpoints for `cashflow_entries`
+- CRUD endpoints for `asset_prices`
+- dashboard visibility for cashflow and pricing counts
+- list screens for cashflow and pricing
+- business validation for operation-to-portfolio cashflow links
+- uniqueness validation for asset price by asset, date and source
+
+## Roles
 
 - `admin`: full access
 - `manager`: read, create, update and delete domain records
 - `analyst`: read, create and update domain records
 - `viewer`: read-only access
 
-### Seeded admin
+## Seeded admin
 
 The backend bootstraps a default admin during container startup after migrations.
 
@@ -121,7 +141,7 @@ alembic -c alembic.ini upgrade head
 
 ## Tests
 
-Backend tests:
+Backend tests locally inside `apps/backend`:
 
 ```powershell
 pytest
@@ -133,36 +153,42 @@ Or through Docker:
 docker compose --env-file .env -f infra/compose.yaml exec backend pytest
 ```
 
+Frontend production build inside `apps/frontend`:
+
+```powershell
+npm run build
+```
+
 ## Folder structure
 
 ```text
 .
-├── apps
-│   ├── backend
-│   │   ├── app
-│   │   │   ├── api
-│   │   │   ├── core
-│   │   │   ├── db
-│   │   │   ├── modules
-│   │   │   ├── tests
-│   │   │   └── workers
-│   │   ├── alembic
-│   │   ├── Dockerfile
-│   │   └── pyproject.toml
-│   └── frontend
-│       ├── src
-│       │   ├── app
-│       │   ├── components
-│       │   ├── features
-│       │   ├── lib
-│       │   └── types
-│       └── Dockerfile
-├── docs
-├── infra
-│   ├── compose.yaml
-│   └── docker
-├── .env.example
-└── README.md
+|-- apps
+|   |-- backend
+|   |   |-- app
+|   |   |   |-- api
+|   |   |   |-- core
+|   |   |   |-- db
+|   |   |   |-- modules
+|   |   |   |-- tests
+|   |   |   `-- workers
+|   |   |-- alembic
+|   |   |-- Dockerfile
+|   |   `-- pyproject.toml
+|   `-- frontend
+|       |-- src
+|       |   |-- app
+|       |   |-- components
+|       |   |-- features
+|       |   |-- lib
+|       |   `-- types
+|       `-- Dockerfile
+|-- docs
+|-- infra
+|   |-- compose.yaml
+|   `-- docker
+|-- .env.example
+`-- README.md
 ```
 
 ## Available endpoints
@@ -201,19 +227,36 @@ docker compose --env-file .env -f infra/compose.yaml exec backend pytest
 - `PUT /api/v1/operations/{operation_id}`
 - `DELETE /api/v1/operations/{operation_id}`
 
+### Cashflow
+
+- `GET /api/v1/cashflow`
+- `POST /api/v1/cashflow`
+- `GET /api/v1/cashflow/{entry_id}`
+- `PUT /api/v1/cashflow/{entry_id}`
+- `DELETE /api/v1/cashflow/{entry_id}`
+
+### Pricing
+
+- `GET /api/v1/pricing`
+- `POST /api/v1/pricing`
+- `GET /api/v1/pricing/{price_id}`
+- `PUT /api/v1/pricing/{price_id}`
+- `DELETE /api/v1/pricing/{price_id}`
+
 ## Validation performed
 
-What was validated in this stage:
+Validated in the current stage:
 
-- backend test suite: `8 passed`
-- frontend production build: passed
-
-I also attempted a fresh Docker Compose smoke test, but at that moment the local Docker daemon was unavailable on this machine, so I could not complete that final runtime check from here.
+- Docker Compose stack running locally
+- backend health endpoint responding `200`
+- backend test suite prepared with `12` tests
+- frontend production build passing
+- frontend routes for `/login`, `/cashflow` and `/pricing` compiling successfully
 
 ## Recommended next steps
 
 1. Add user management endpoints and an admin screen for role assignment.
-2. Extend authorization to cashflow, pricing and reports as those modules gain CRUD flows.
-3. Introduce refresh tokens or an http-only cookie session model.
-4. Build cashflow and pricing modules next.
-5. Start the asynchronous report generation pipeline with Celery and MinIO.
+2. Build report template CRUD and asynchronous report execution with Celery and MinIO.
+3. Add position and cash consolidation services for dashboard and portfolio views.
+4. Expand audit context with authenticated user attribution.
+5. Add CI for backend tests, frontend build and linting.

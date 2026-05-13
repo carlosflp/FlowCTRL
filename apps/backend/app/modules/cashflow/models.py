@@ -1,6 +1,6 @@
+import uuid
 from datetime import date
 from decimal import Decimal
-import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, Enum, ForeignKey, Text
@@ -18,7 +18,10 @@ class CashflowEntry(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "cashflow_entries"
 
     portfolio_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("portfolios.id"), nullable=False)
-    operation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("operations.id"), nullable=True)
+    operation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("operations.id"),
+        nullable=True,
+    )
     entry_date: Mapped[date] = mapped_column(Date, nullable=False)
     settlement_date: Mapped[date] = mapped_column(Date, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)

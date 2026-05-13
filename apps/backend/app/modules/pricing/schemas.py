@@ -1,6 +1,6 @@
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
-import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,10 +17,26 @@ class AssetPriceCreate(AssetPriceBase):
     pass
 
 
+class AssetPriceUpdate(BaseModel):
+    asset_id: uuid.UUID | None = None
+    price_date: date | None = None
+    price: Decimal | None = Field(default=None, ge=0)
+    source: str | None = Field(default=None, min_length=1, max_length=64)
+    is_validated: bool | None = None
+
+
+class AssetPriceAssetSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    ticker: str
+    name: str
+
+
 class AssetPriceRead(AssetPriceBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
-
+    asset: AssetPriceAssetSummary

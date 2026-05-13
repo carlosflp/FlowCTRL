@@ -6,9 +6,11 @@ import {
   BarChart3,
   BriefcaseBusiness,
   ClipboardList,
+  DollarSign,
   FileSpreadsheet,
   LayoutGrid,
   LogOut,
+  Wallet,
 } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-provider";
@@ -19,6 +21,8 @@ const navigation = [
   { href: "/portfolios", label: "Carteiras", icon: BriefcaseBusiness },
   { href: "/assets", label: "Ativos", icon: BarChart3 },
   { href: "/operations", label: "Operacoes", icon: ClipboardList },
+  { href: "/cashflow", label: "Caixa", icon: Wallet },
+  { href: "/pricing", label: "Precos", icon: DollarSign },
   { href: "/reports", label: "Relatorios", icon: FileSpreadsheet },
 ];
 
@@ -34,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">FlowCTRL</div>
             <div className="mt-2 text-2xl font-semibold text-ink">Asset Platform</div>
             <p className="mt-2 max-w-xs text-sm leading-6 text-muted">
-              Operational control for portfolios, assets, transactions and reporting workflows.
+              Operational control for portfolios, assets, cash events, pricing and reporting workflows.
             </p>
           </div>
 

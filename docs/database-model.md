@@ -4,7 +4,7 @@
 
 ### User
 
-Representa usuários internos do sistema.
+Representa usuarios internos do sistema.
 
 Campos principais:
 
@@ -12,6 +12,7 @@ Campos principais:
 - `email`
 - `full_name`
 - `hashed_password`
+- `role`
 - `is_active`
 - `is_superuser`
 - `created_at`
@@ -19,7 +20,7 @@ Campos principais:
 
 ### Portfolio
 
-Representa carteira, fundo ou estratégia gerida.
+Representa carteira, fundo ou estrategia gerida.
 
 Campos principais:
 
@@ -34,7 +35,7 @@ Campos principais:
 
 ### Asset
 
-Cadastro mestre de ativos negociáveis ou controlados.
+Cadastro mestre de ativos negociaveis ou controlados.
 
 Campos principais:
 
@@ -74,7 +75,7 @@ Campos principais:
 
 ### CashflowEntry
 
-Movimento de caixa ligado ou não a uma operação.
+Movimento de caixa ligado ou nao a uma operacao.
 
 Campos principais:
 
@@ -92,7 +93,7 @@ Campos principais:
 
 ### AssetPrice
 
-Preço histórico de um ativo em determinada data e fonte.
+Preco historico de um ativo em determinada data e fonte.
 
 Campos principais:
 
@@ -107,7 +108,7 @@ Campos principais:
 
 ### ReportTemplate
 
-Modelo parametrizável para geração de relatórios.
+Modelo parametrizavel para geracao de relatorios.
 
 Campos principais:
 
@@ -122,7 +123,7 @@ Campos principais:
 
 ### ReportExecution
 
-Execução concreta de um relatório, potencialmente vinculada a uma carteira.
+Execucao concreta de um relatorio, potencialmente vinculada a uma carteira.
 
 Campos principais:
 
@@ -138,7 +139,7 @@ Campos principais:
 
 ### AuditLog
 
-Registro genérico de alterações relevantes.
+Registro generico de alteracoes relevantes.
 
 Campos principais:
 
@@ -162,29 +163,34 @@ Campos principais:
 - `Portfolio 1:N ReportExecution`
 - `User 1:N AuditLog`
 
-## Decisões de modelagem
+## Decisoes de modelagem
 
-### UUID como chave primária
+### UUID como chave primaria
 
 As entidades principais usam UUID para facilitar:
 
-- integração futura;
-- redução de colisões em importações;
-- distribuição sem dependência de sequências globais.
+- integracao futura
+- reducao de colisoes em importacoes
+- distribuicao sem dependencia de sequencias globais
 
 ### Decimal para valores financeiros
 
-Valores monetários e quantidades foram modelados com precisão decimal via SQLAlchemy `Numeric`, evitando erros de arredondamento típicos de `float`.
+Valores monetarios e quantidades foram modelados com precisao decimal via SQLAlchemy `Numeric`, evitando erros de arredondamento tipicos de `float`.
 
-### JSON para estruturas flexíveis
+### JSON para estruturas flexiveis
 
-`config_json`, `parameters_json`, `old_value_json` e `new_value_json` usam JSON para preservar flexibilidade sem antecipar um modelo excessivamente rígido.
+`config_json`, `parameters_json`, `old_value_json` e `new_value_json` usam JSON para preservar flexibilidade sem antecipar um modelo excessivamente rigido.
 
-### Tabelas de suporte já previstas
+### Tabelas de suporte ja ativas
 
-Mesmo sem CRUD completo ainda, `cashflow`, `pricing`, `reports` e `audit` já fazem parte do modelo para evitar retrabalho estrutural depois.
+`cashflow`, `pricing`, `reports` e `audit` ja fazem parte do modelo principal. Nesta etapa, `cashflow` e `pricing` deixaram de ser apenas preparacao estrutural e passaram a ter CRUD operacional.
 
-### Enumerações explícitas
+### Restricoes importantes
 
-Tipos de ativo, tipos de operação e status foram definidos como enums desde o início. Isso melhora consistência, validação e clareza sem impedir expansão controlada futura.
+- `asset_prices` possui unicidade por `asset_id + price_date + source`
+- `cashflow_entries.operation_id` e opcional
+- `audit_logs.user_id` continua opcional nesta fase para nao travar o bootstrap inicial
 
+### Enumeracoes explicitas
+
+Tipos de ativo, tipos de operacao, tipos de caixa, status e perfis de usuario foram definidos como enums desde o inicio. Isso melhora consistencia, validacao e clareza sem impedir expansao controlada futura.

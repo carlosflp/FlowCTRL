@@ -1,96 +1,107 @@
 # Arquitetura Geral
 
-## Visão geral
+## Visao geral
 
-O projeto foi estruturado como um monolito modular com separação explícita entre:
+O projeto foi estruturado como um monolito modular com separacao explicita entre:
 
-- `apps/backend`: API, domínio, persistência, worker e testes.
-- `apps/frontend`: interface operacional em Next.js.
-- `infra`: orquestração local com Docker Compose.
-- `docs`: documentação de arquitetura, modelo e regras.
+- `apps/backend`: API, dominio, persistencia, worker e testes
+- `apps/frontend`: interface operacional em Next.js
+- `infra`: orquestracao local com Docker Compose
+- `docs`: documentacao de arquitetura, dados e regras
 
-O repositório raiz já funciona como o diretório principal do produto. Não foi criada uma pasta adicional `asset-platform/` para evitar profundidade artificial.
+O repositorio raiz ja funciona como o diretorio principal do produto. Nao foi criada uma pasta adicional `asset-platform/` para evitar profundidade artificial.
 
 ## Por que monolito modular
 
-Nesta fase, a prioridade é:
+Nesta fase, a prioridade e:
 
-- reduzir complexidade operacional;
-- manter deploy local simples;
-- preservar coesão entre regras de negócio;
-- permitir evolução por domínio sem acoplamento caótico.
+- reduzir complexidade operacional
+- manter deploy local simples
+- preservar coesao entre regras de negocio
+- permitir evolucao por dominio sem acoplamento caotico
 
-O backend foi organizado por módulos de negócio, cada um com responsabilidades próprias. Isso entrega uma base próxima de bounded contexts sem introduzir custo de microsserviços cedo demais.
+O backend foi organizado por modulos de negocio, cada um com responsabilidades proprias. Isso entrega uma base proxima de bounded contexts sem introduzir o custo de microsservicos cedo demais.
 
 ## Estrutura do backend
 
 O backend foi dividido em:
 
-- `app/api`: composição de rotas públicas da API.
-- `app/core`: configuração, enums e utilitários centrais.
-- `app/db`: base ORM, sessão, metadata e helpers de persistência.
-- `app/modules`: domínios de negócio.
-- `app/workers`: Celery e tarefas assíncronas.
-- `app/tests`: testes automatizados iniciais.
+- `app/api`: composicao de rotas publicas da API
+- `app/core`: configuracao, enums e utilitarios centrais
+- `app/db`: base ORM, sessao, metadata e helpers de persistencia
+- `app/modules`: dominios de negocio
+- `app/workers`: Celery e tarefas assincronas
+- `app/tests`: testes automatizados
 
-Cada módulo principal segue o padrão:
+Cada modulo principal segue o padrao:
 
 - `models.py`: entidades SQLAlchemy
 - `schemas.py`: contratos Pydantic
 - `service.py`: regras e casos de uso
 - `router.py`: endpoints FastAPI
 
-## Módulos iniciais
+## Modulos atuais
 
-- `users`: usuários internos e base para autenticação futura.
-- `auth`: scaffolding de autenticação sem fluxo completo ainda.
-- `portfolios`: carteiras e fundos sob gestão.
-- `assets`: catálogo de ativos e seus atributos principais.
-- `operations`: lançamentos operacionais com auditoria básica.
-- `cashflow`: eventos de caixa ligados ou não a operações.
-- `pricing`: preços históricos e validação.
-- `reports`: templates e execuções de relatórios.
-- `audit`: trilha de alterações relevantes.
+- `users`: usuarios internos, perfis e bootstrap de administrador
+- `auth`: autenticacao JWT e autorizacao por papel
+- `portfolios`: carteiras e fundos sob gestao
+- `assets`: cadastro mestre de ativos
+- `operations`: lancamentos operacionais com auditoria
+- `cashflow`: eventos de caixa ligados ou nao a operacoes
+- `pricing`: precos historicos e validacao por fonte
+- `reports`: templates e execucoes futuras
+- `audit`: trilha de alteracoes relevantes
 
 ## Fluxo backend, frontend e worker
 
-1. O frontend consome a API FastAPI via `NEXT_PUBLIC_API_URL`.
-2. O backend persiste dados no PostgreSQL.
-3. O Redis funciona como broker/backend do Celery.
-4. O worker executa tarefas assíncronas, com foco futuro em relatórios e rotinas operacionais.
-5. O MinIO armazena artefatos grandes, como CSV, XLSX e PDF.
+1. O frontend consome a API FastAPI via `NEXT_PUBLIC_API_URL`
+2. O backend valida autenticacao e regras de negocio
+3. O backend persiste dados no PostgreSQL
+4. O Redis funciona como broker e backend do Celery
+5. O worker executa tarefas assincronas, com foco futuro em relatorios e rotinas operacionais
+6. O MinIO armazena artefatos grandes, como CSV, XLSX e PDF
 
 ## Papel de PostgreSQL, Redis e MinIO
 
 ### PostgreSQL
 
-É o banco transacional principal. Concentra entidades operacionais, relacionamentos, rastreabilidade e estado da aplicação.
+E o banco transacional principal. Concentra entidades operacionais, relacionamentos, rastreabilidade e estado da aplicacao.
 
 ### Redis
 
 Foi introduzido desde a base para suportar:
 
-- filas assíncronas;
-- orquestração com Celery;
-- futuras estratégias de cache ou locking.
+- filas assincronas
+- orquestracao com Celery
+- futuras estrategias de cache ou locking
 
 ### MinIO
 
 Simula um S3 local sem custo e permite:
 
-- armazenar relatórios grandes fora do banco;
-- preparar exportações futuras;
-- manter paridade arquitetural com um storage orientado a objetos.
+- armazenar relatorios grandes fora do banco
+- preparar exportacoes futuras
+- manter paridade arquitetural com um storage orientado a objetos
 
-## Evolução esperada
+## Estado atual da aplicacao
 
-Essa fundação permite avançar para:
+Hoje a plataforma ja oferece:
 
-- autenticação real e autorização por perfis;
-- cálculo de posição consolidada;
-- geração assíncrona de relatórios;
-- trilha de auditoria mais rica;
-- reconciliação de caixa;
-- precificação e vencimentos;
-- camadas de risco e liquidez.
+- login JWT com usuario admin bootstrapado por ambiente
+- autorizacao por papeis (`admin`, `manager`, `analyst`, `viewer`)
+- CRUD inicial para portfolios, assets, operations, cashflow e pricing
+- dashboard inicial com contagens operacionais
+- telas protegidas para carteiras, ativos, operacoes, caixa, precos e relatorios
+- worker Celery preparado para a proxima etapa de geracao assincrona
 
+## Evolucao esperada
+
+Essa fundacao permite avancar para:
+
+- gestao de usuarios e perfis pela interface
+- calculo de posicao consolidada
+- consolidacao de caixa por carteira
+- geracao assincrona de relatorios
+- trilha de auditoria com usuario autenticado
+- conciliacao operacional
+- camadas de risco, liquidez e vencimentos

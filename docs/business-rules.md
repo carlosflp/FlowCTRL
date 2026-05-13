@@ -1,20 +1,20 @@
-# Regras de Negócio Iniciais
+# Regras de Negocio Iniciais
 
-## Operações
+## Operacoes
 
-As operações são o núcleo do controle operacional inicial.
+As operacoes sao o nucleo do controle operacional inicial.
 
-Regras já aplicadas ou preparadas:
+Regras ja aplicadas:
 
-- toda operação deve estar vinculada a uma `Portfolio`;
-- toda operação deve estar vinculada a um `Asset`;
-- `settlement_date` não pode ser anterior a `trade_date`;
-- `quantity` deve ser maior que zero;
-- `unit_price`, `fees` e `taxes` não podem ser negativos;
-- `gross_value` pode ser calculado automaticamente como `quantity * unit_price`;
-- `net_value` pode ser calculado automaticamente como `gross_value - fees - taxes`.
+- toda operacao deve estar vinculada a uma `Portfolio`
+- toda operacao deve estar vinculada a um `Asset`
+- `settlement_date` nao pode ser anterior a `trade_date`
+- `quantity` deve ser maior que zero
+- `unit_price`, `fees` e `taxes` nao podem ser negativos
+- `gross_value` pode ser calculado automaticamente como `quantity * unit_price`
+- `net_value` pode ser calculado automaticamente como `gross_value - fees - taxes`
 
-## Status de operação
+## Status de operacao
 
 Estados modelados:
 
@@ -25,64 +25,80 @@ Estados modelados:
 - `cancelled`
 - `rejected`
 
-Intenção de uso:
+Intencao de uso:
 
-- `draft`: lançamento ainda em edição;
-- `pending_approval`: aguardando validação interna;
-- `approved`: validado para processamento;
-- `settled`: liquidado financeiramente;
-- `cancelled`: operação cancelada;
-- `rejected`: recusada por regra ou conferência.
+- `draft`: lancamento ainda em edicao
+- `pending_approval`: aguardando validacao interna
+- `approved`: validado para processamento
+- `settled`: liquidado financeiramente
+- `cancelled`: operacao cancelada
+- `rejected`: recusada por regra ou conferencia
 
 ## Regras de caixa
 
-Nesta primeira etapa, o módulo de caixa já existe no modelo, mas ainda não expõe fluxo completo.
+O modulo de caixa ja possui CRUD inicial e segue estas regras:
 
-Direção adotada:
+- caixa pode existir sem operacao associada
+- caixa pode representar `inflow`, `outflow`, `transfer` e `adjustment`
+- `settlement_date` nao pode ser anterior a `entry_date`
+- `amount` deve ser maior que zero
+- se `operation_id` for informado, a operacao deve pertencer a mesma carteira do evento de caixa
+- os status iniciais suportados sao `pending`, `settled` e `cancelled`
 
-- caixa deve poder existir sem operação associada;
-- caixa deve permitir entradas, saídas, transferências e ajustes;
-- liquidação financeira futura poderá ser reconciliada com operações e eventos externos.
+## Regras de precificacao
+
+O modulo de pricing ja possui CRUD inicial e segue estas regras:
+
+- todo preco deve estar vinculado a um `Asset`
+- `price` nao pode ser negativo
+- `source` e obrigatoria
+- nao pode existir mais de um preco para a mesma combinacao de `asset`, `price_date` e `source`
+- `is_validated` prepara a futura separacao entre preco importado e preco homologado internamente
 
 ## Regras de auditoria
 
-Já foi implementado registro básico de auditoria para operações:
+Ja foi implementado registro basico de auditoria para:
 
-- criação de operação gera `AuditLog`;
-- atualização de operação gera `AuditLog`;
-- exclusão de operação também fica preparada para rastreabilidade;
-- os payloads anterior e posterior são guardados em JSON.
+- `operations`
+- `cashflow_entries`
+- `asset_prices`
 
-Essa trilha ainda é intencionalmente simples, mas já cria base para governança, revisão interna e compliance operacional.
+Em cada um desses dominios:
 
-## Ideias futuras para risco, posição, liquidez e relatórios
+- criacao gera `AuditLog`
+- atualizacao gera `AuditLog`
+- exclusao gera `AuditLog`
+- os payloads anterior e posterior sao guardados em JSON
+
+Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, revisao interna e compliance operacional.
+
+## Ideias futuras para risco, posicao, liquidez e relatorios
 
 ### Risco
 
-- limites por emissor;
-- limites por classe de ativo;
-- exposição por indexador;
-- duration e concentração.
+- limites por emissor
+- limites por classe de ativo
+- exposicao por indexador
+- duration e concentracao
 
-### Posição
+### Posicao
 
-- cálculo de posição por carteira e ativo;
-- posição por data de referência;
-- custo médio e marcação a mercado;
-- eventos corporativos e amortizações.
+- calculo de posicao por carteira e ativo
+- posicao por data de referencia
+- custo medio e marcacao a mercado
+- eventos corporativos e amortizacoes
 
 ### Liquidez
 
-- controle de vencimentos;
-- buckets de liquidez;
-- projeção de caixa;
-- agenda de liquidação.
+- controle de vencimentos
+- buckets de liquidez
+- projecao de caixa
+- agenda de liquidacao
 
-### Relatórios
+### Relatorios
 
-- posições consolidadas;
-- extrato operacional por carteira;
-- relatório de movimentação de caixa;
-- relatório gerencial por período;
-- exportação assíncrona com arquivos armazenados no MinIO.
-
+- posicoes consolidadas
+- extrato operacional por carteira
+- relatorio de movimentacao de caixa
+- relatorio gerencial por periodo
+- exportacao assincrona com arquivos armazenados no MinIO

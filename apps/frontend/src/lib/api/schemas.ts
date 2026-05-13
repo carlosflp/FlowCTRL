@@ -63,6 +63,47 @@ export const operationSchema = z.object({
   }),
 });
 
+export const cashflowEntrySchema = z.object({
+  id: z.string().uuid(),
+  portfolio_id: z.string().uuid(),
+  operation_id: z.string().uuid().nullable(),
+  entry_date: z.string(),
+  settlement_date: z.string(),
+  description: z.string(),
+  entry_type: z.string(),
+  amount: z.string(),
+  status: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  portfolio: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+  }),
+  operation: z
+    .object({
+      id: z.string().uuid(),
+      operation_type: z.string(),
+      status: z.string(),
+    })
+    .nullable(),
+});
+
+export const assetPriceSchema = z.object({
+  id: z.string().uuid(),
+  asset_id: z.string().uuid(),
+  price_date: z.string(),
+  price: z.string(),
+  source: z.string(),
+  is_validated: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  asset: z.object({
+    id: z.string().uuid(),
+    ticker: z.string(),
+    name: z.string(),
+  }),
+});
+
 export const authTokenSchema = z.object({
   access_token: z.string(),
   token_type: z.string(),
@@ -73,3 +114,5 @@ export const authTokenSchema = z.object({
 export const portfolioListSchema = z.array(portfolioSchema);
 export const assetListSchema = z.array(assetSchema);
 export const operationListSchema = z.array(operationSchema);
+export const cashflowEntryListSchema = z.array(cashflowEntrySchema);
+export const assetPriceListSchema = z.array(assetPriceSchema);
