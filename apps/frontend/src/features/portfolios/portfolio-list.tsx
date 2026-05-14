@@ -50,7 +50,7 @@ export function PortfolioList() {
       ) : isError ? (
         <EmptyState
           title="Não foi possível carregar as carteiras"
-          description="Verifique se o backend está rodando e se a variável NEXT_PUBLIC_API_URL está apontando para a API correta."
+          description="Verifique se o backend está rodando e se o proxy /api/v1 do frontend consegue alcançar a API."
         />
       ) : (
         <DataTable columns={portfolioColumns} data={filteredData} emptyMessage="Nenhuma carteira encontrada." />
@@ -58,4 +58,3 @@ export function PortfolioList() {
     </section>
   );
 }
-

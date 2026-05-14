@@ -116,7 +116,8 @@ services:
     env_file:
       - ../.env
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_API_URL: /api/v1
+      FLOWCTRL_BACKEND_ORIGIN: ${FLOWCTRL_BACKEND_ORIGIN:-http://backend:8000}
       WATCHPACK_POLLING: "true"
     command: npm run dev -- --hostname 0.0.0.0 --port 3000
     ports:
