@@ -14,6 +14,7 @@ The repository now includes:
 - administrative user management APIs and admin screen
 - self-service profile maintenance and password change for authenticated users
 - async reporting with Celery and MinIO
+- report execution filters by date range, portfolio scope and custom columns
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
@@ -94,7 +95,7 @@ Some small structural adjustments were kept from the original proposal because t
 - default report templates seeded during bootstrap
 - report template read/create/update endpoints
 - report execution endpoints with Celery queueing
-- CSV, XLSX and PDF generation in the worker
+- CSV, XLSX and PDF generation chosen at execution time
 - artifact storage in MinIO
 - authenticated download endpoint
 - report execution screen with queue status polling and download
@@ -121,6 +122,20 @@ Some small structural adjustments were kept from the original proposal because t
 - authenticated users can change their own password by confirming the current credential
 - frontend account screen for profile maintenance without exposing role escalation
 - session shell now exposes a direct "Minha conta" entry for protected users
+
+### Stage 8: richer report execution filters
+
+- report executions now accept optional date range filters when the dataset supports time slicing
+- report executions validate portfolio scope only for compatible datasets
+- users can select custom export columns per template before queueing the execution
+- recent execution history now exposes the applied scope summary in the frontend
+
+### Stage 9: custom report builder and format-independent templates
+
+- all reusable report templates can now export in CSV, XLSX or PDF at execution time
+- default templates were normalized to dataset-oriented names instead of file-oriented names
+- a dedicated "Relatorio personalizado" flow lets users choose dataset, columns, scope and file format
+- recent execution history now identifies custom dataset overrides alongside the selected export format
 
 ## Roles
 
@@ -199,6 +214,21 @@ Frontend production build inside `apps/frontend`:
 ```powershell
 npm run build
 ```
+
+## Demo data
+
+To populate the local environment with a reusable demo dataset covering users, portfolios, assets,
+operations, cashflow, pricing, positions and report executions:
+
+```powershell
+docker compose --env-file .env -f infra/compose.yaml exec backend python -m app.seed_demo
+```
+
+The demo seed is idempotent and now aligns report templates with the current model:
+
+- generic templates are not split by file type anymore
+- demo executions include mixed CSV, XLSX and PDF exports
+- the default custom report template is created by backend bootstrap
 
 ## Folder structure
 
@@ -324,7 +354,7 @@ Validated in the current stage:
 ## Recommended next steps
 
 1. Expand position handling for corporate actions, transfers and richer valuation rules.
-2. Expand report filters by date range, portfolio scope and custom columns.
-3. Expand audit context with authenticated user attribution across all domains.
-4. Add CI for backend tests, frontend build and linting.
-5. Expand account security with password policy, reset flow and session expiration controls.
+2. Expand audit context with authenticated user attribution across all domains.
+3. Add CI for backend tests, frontend build and linting.
+4. Expand account security with password policy, reset flow and session expiration controls.
+5. Expand report templates with saved presets, reusable filter sets and governance approval flows.

@@ -155,14 +155,21 @@ export const reportTemplateSchema = z.object({
   updated_at: z.string(),
 });
 
+export const reportExecutionParametersSchema = z.object({
+  dataset: z.enum(["operations", "cashflow", "pricing", "portfolios"]).nullable().optional(),
+  date_from: z.string().nullable(),
+  date_to: z.string().nullable(),
+  columns: z.array(z.string()).nullable(),
+});
+
 export const reportExecutionSchema = z.object({
   id: z.string().uuid(),
   template_id: z.string().uuid(),
   portfolio_id: z.string().uuid().nullable(),
   status: z.enum(["queued", "running", "completed", "failed"]),
-  parameters_json: z.record(z.unknown()).nullable(),
+  parameters_json: reportExecutionParametersSchema.nullable(),
   file_path: z.string().nullable(),
-  file_type: z.string().nullable(),
+  file_type: z.enum(["csv", "xlsx", "pdf"]).nullable(),
   created_at: z.string(),
   finished_at: z.string().nullable(),
   template: z.object({

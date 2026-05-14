@@ -2,56 +2,113 @@ from __future__ import annotations
 
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.enums import AuditAction, ReportDatasetType, ReportExecutionStatus
+from app.core.enums import (
+    AuditAction,
+    ReportDatasetType,
+    ReportExecutionStatus,
+    ReportTemplateType,
+)
 from app.db.utils import model_to_dict
 from app.modules.audit.service import create_audit_log
 from app.modules.portfolios.models import Portfolio
+from app.modules.reports.definitions import (
+    HIDDEN_TEMPLATE_CONFIG_KEY,
+    get_report_dataset_definition,
+    is_hidden_report_template,
+    normalize_report_template_config,
+    resolve_execution_dataset,
+    resolve_report_dataset_from_config,
+)
 from app.modules.reports.generator import build_report_artifact
 from app.modules.reports.models import ReportExecution, ReportTemplate
 from app.modules.reports.schemas import (
     ReportExecutionCreate,
+    ReportExecutionParameters,
     ReportTemplateCreate,
     ReportTemplateUpdate,
 )
 from app.modules.reports.storage import download_report_content, upload_report_content
 
-DEFAULT_REPORT_TEMPLATES = [
-    {
-        "name": "Operacoes Consolidadas CSV",
-        "description": "Extracao consolidada das operacoes registradas na plataforma.",
-        "template_type": "csv",
-        "config_json": {"dataset": "operations"},
-    },
-    {
-        "name": "Operacoes Consolidadas XLSX",
-        "description": "Versao em planilha das operacoes para analise operacional.",
-        "template_type": "xlsx",
-        "config_json": {"dataset": "operations"},
-    },
-    {
-        "name": "Movimentacoes de Caixa PDF",
-        "description": "Resumo em PDF das movimentacoes de caixa registradas.",
-        "template_type": "pdf",
-        "config_json": {"dataset": "cashflow"},
-    },
-    {
-        "name": "Precos de Ativos CSV",
-        "description": "Exportacao da base de precificacao por ativo e fonte.",
-        "template_type": "csv",
-        "config_json": {"dataset": "pricing"},
-    },
-]
+
+@dataclass(frozen=True)
+class ReportTemplateSpec:
+    name: str
+    description: str
+    template_type: ReportTemplateType
+    config_json: dict[str, object]
+    aliases: tuple[str, ...] = ()
+    create_if_missing: bool = True
+    is_active: bool = True
+
+
+SYSTEM_REPORT_TEMPLATE_SPECS: tuple[ReportTemplateSpec, ...] = (
+    ReportTemplateSpec(
+        name="Carteiras Operacionais",
+        description="Base de carteiras com exportacao configuravel em CSV, XLSX ou PDF.",
+        template_type=ReportTemplateType.XLSX,
+        config_json={"dataset": ReportDatasetType.PORTFOLIOS.value},
+    ),
+    ReportTemplateSpec(
+        name="Movimentacoes de Caixa",
+        description="Base de movimentacoes de caixa com exportacao configuravel em CSV, XLSX ou PDF.",
+        template_type=ReportTemplateType.XLSX,
+        config_json={"dataset": ReportDatasetType.CASHFLOW.value},
+        aliases=("Movimentacoes de Caixa PDF",),
+    ),
+    ReportTemplateSpec(
+        name="Operacoes Consolidadas",
+        description="Base consolidada das operacoes registradas na plataforma com exportacao configuravel.",
+        template_type=ReportTemplateType.XLSX,
+        config_json={"dataset": ReportDatasetType.OPERATIONS.value},
+        aliases=("Operacoes Consolidadas XLSX", "Operacoes Consolidadas CSV"),
+    ),
+    ReportTemplateSpec(
+        name="Precos de Ativos",
+        description="Base de precificacao por ativo e fonte com exportacao configuravel em CSV, XLSX ou PDF.",
+        template_type=ReportTemplateType.CSV,
+        config_json={"dataset": ReportDatasetType.PRICING.value},
+        aliases=("Precos de Ativos CSV",),
+    ),
+    ReportTemplateSpec(
+        name="Relatorio Personalizado",
+        description="Monte um relatorio personalizado escolhendo dataset, colunas, filtros e formato de exportacao.",
+        template_type=ReportTemplateType.XLSX,
+        config_json={
+            "dataset": ReportDatasetType.OPERATIONS.value,
+            "custom_template": True,
+            "allow_custom_dataset": True,
+        },
+    ),
+    ReportTemplateSpec(
+        name="Demo - Carteiras Operacionais",
+        description="Template demo para exportar a base de carteiras operacionais em qualquer formato.",
+        template_type=ReportTemplateType.XLSX,
+        config_json={"dataset": ReportDatasetType.PORTFOLIOS.value},
+        aliases=("Demo - Carteiras Operacionais XLSX",),
+        create_if_missing=False,
+    ),
+    ReportTemplateSpec(
+        name="Demo - Operacoes Gerenciais",
+        description="Template demo para analise operacional com exportacao configuravel.",
+        template_type=ReportTemplateType.PDF,
+        config_json={"dataset": ReportDatasetType.OPERATIONS.value},
+        aliases=("Demo - Operacoes Gerenciais PDF",),
+        create_if_missing=False,
+    ),
+)
 
 
 def list_report_templates(db: Session) -> list[ReportTemplate]:
     statement = select(ReportTemplate).order_by(ReportTemplate.name.asc())
-    return list(db.scalars(statement))
+    templates = list(db.scalars(statement))
+    return [template for template in templates if not is_hidden_report_template(template.config_json)]
 
 
 def get_report_template_or_404(db: Session, template_id: uuid.UUID) -> ReportTemplate:
@@ -153,14 +210,26 @@ def create_report_execution(db: Session, payload: ReportExecutionCreate) -> Repo
             detail="Inactive report templates cannot be executed.",
         )
 
+    parameters = payload.parameters_json
+    dataset = resolve_report_execution_dataset(template, parameters)
+    definition = get_report_dataset_definition(dataset)
+    validate_report_execution_parameters(dataset, parameters)
+
     if payload.portfolio_id is not None:
+        if not definition.supports_portfolio_scope:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"Portfolio scope is not supported for the {dataset.value} dataset.",
+            )
         ensure_portfolio_exists(db, payload.portfolio_id)
 
+    file_type = (payload.file_type or template.template_type).value
     execution = ReportExecution(
         template_id=payload.template_id,
         portfolio_id=payload.portfolio_id,
-        parameters_json=payload.parameters_json,
+        parameters_json=serialize_report_execution_parameters(parameters),
         status=ReportExecutionStatus.QUEUED,
+        file_type=file_type,
     )
     db.add(execution)
     db.flush()
@@ -262,17 +331,138 @@ def get_report_download_payload(
 
 
 def ensure_default_report_templates(db: Session) -> None:
-    existing_names = set(db.scalars(select(ReportTemplate.name)))
-    created_any = False
+    templates = list(db.scalars(select(ReportTemplate).order_by(ReportTemplate.created_at.asc())))
+    templates_by_name = {template.name: template for template in templates}
+    changed = False
 
-    for template_data in DEFAULT_REPORT_TEMPLATES:
-        if template_data["name"] in existing_names:
-            continue
-        db.add(ReportTemplate(**template_data))
-        created_any = True
+    for spec in SYSTEM_REPORT_TEMPLATE_SPECS:
+        changed = sync_report_template_spec(db, spec, templates_by_name) or changed
 
-    if created_any:
+    if changed:
         db.commit()
+
+
+def sync_report_template_spec(
+    db: Session,
+    spec: ReportTemplateSpec,
+    templates_by_name: dict[str, ReportTemplate],
+) -> bool:
+    canonical = templates_by_name.get(spec.name)
+    aliases = [templates_by_name[name] for name in spec.aliases if name in templates_by_name]
+    primary = select_primary_report_template(spec, canonical, aliases)
+    changed = False
+
+    if primary is None:
+        if not spec.create_if_missing:
+            return False
+
+        primary = ReportTemplate(
+            name=spec.name,
+            description=spec.description,
+            template_type=spec.template_type,
+            config_json=dict(spec.config_json),
+            is_active=spec.is_active,
+        )
+        db.add(primary)
+        db.flush()
+        templates_by_name[spec.name] = primary
+        changed = True
+    else:
+        if primary.name != spec.name and spec.name not in templates_by_name:
+            del templates_by_name[primary.name]
+            primary.name = spec.name
+            templates_by_name[spec.name] = primary
+            changed = True
+
+        changed = apply_report_template_spec(primary, spec, preserve_active=canonical is not None) or changed
+
+    duplicate_templates = [
+        template
+        for template in aliases
+        if template.id != primary.id
+    ]
+
+    if canonical is not None and canonical.id != primary.id:
+        duplicate_templates.append(canonical)
+
+    for duplicate in duplicate_templates:
+        changed = hide_report_template(duplicate) or changed
+
+    return changed
+
+
+def select_primary_report_template(
+    spec: ReportTemplateSpec,
+    canonical: ReportTemplate | None,
+    aliases: list[ReportTemplate],
+) -> ReportTemplate | None:
+    if canonical is not None:
+        return canonical
+
+    visible_aliases = [template for template in aliases if not is_hidden_report_template(template.config_json)]
+    candidates = visible_aliases or aliases
+    if not candidates:
+        return None
+
+    for candidate in candidates:
+        if candidate.template_type == spec.template_type:
+            return candidate
+    return candidates[0]
+
+
+def apply_report_template_spec(
+    template: ReportTemplate,
+    spec: ReportTemplateSpec,
+    *,
+    preserve_active: bool,
+) -> bool:
+    changed = False
+    desired_config = dict(spec.config_json)
+    raw_current_config = normalize_report_template_config(template.config_json)
+    current_config = dict(raw_current_config)
+    current_config.pop(HIDDEN_TEMPLATE_CONFIG_KEY, None)
+
+    if template.description != spec.description:
+        template.description = spec.description
+        changed = True
+    if template.template_type != spec.template_type:
+        template.template_type = spec.template_type
+        changed = True
+    if current_config != desired_config or raw_current_config.get(HIDDEN_TEMPLATE_CONFIG_KEY):
+        template.config_json = desired_config
+        changed = True
+    if not preserve_active and template.is_active != spec.is_active:
+        template.is_active = spec.is_active
+        changed = True
+
+    if changed:
+        db_safe_add(template)
+    return changed
+
+
+def hide_report_template(template: ReportTemplate) -> bool:
+    changed = False
+    config = normalize_report_template_config(template.config_json)
+
+    if not config.get(HIDDEN_TEMPLATE_CONFIG_KEY):
+        config[HIDDEN_TEMPLATE_CONFIG_KEY] = True
+        template.config_json = config
+        changed = True
+    if template.is_active:
+        template.is_active = False
+        changed = True
+
+    if changed:
+        db_safe_add(template)
+    return changed
+
+
+def db_safe_add(model) -> None:
+    from sqlalchemy.orm.session import object_session
+
+    session = object_session(model)
+    if session is not None:
+        session.add(model)
 
 
 def ensure_portfolio_exists(db: Session, portfolio_id: uuid.UUID) -> None:
@@ -299,16 +489,71 @@ def ensure_template_name_is_available(
 
 
 def validate_report_template_config(config_json: dict | None) -> None:
-    config = config_json or {}
-    dataset = config.get("dataset", ReportDatasetType.OPERATIONS.value)
     try:
-        ReportDatasetType(dataset)
+        resolve_report_dataset_from_config(config_json)
     except ValueError as exc:
         allowed = ", ".join(dataset_type.value for dataset_type in ReportDatasetType)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid report dataset. Allowed values: {allowed}.",
         ) from exc
+
+
+def resolve_report_dataset(template: ReportTemplate) -> ReportDatasetType:
+    return resolve_report_dataset_from_config(template.config_json)
+
+
+def resolve_report_execution_dataset(
+    template: ReportTemplate,
+    parameters: ReportExecutionParameters | None,
+) -> ReportDatasetType:
+    try:
+        return resolve_execution_dataset(
+            template.config_json,
+            parameters.dataset if parameters else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+
+def validate_report_execution_parameters(
+    dataset: ReportDatasetType,
+    parameters: ReportExecutionParameters | None,
+) -> None:
+    if parameters is None:
+        return
+
+    definition = get_report_dataset_definition(dataset)
+    if (parameters.date_from or parameters.date_to) and definition.date_field is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Date range filters are not supported for the {dataset.value} dataset.",
+        )
+
+    if parameters.columns:
+        invalid_columns = [column for column in parameters.columns if column not in definition.columns]
+        if invalid_columns:
+            allowed_columns = ", ".join(definition.columns)
+            invalid_columns_text = ", ".join(invalid_columns)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"Invalid report columns for the {dataset.value} dataset: {invalid_columns_text}. "
+                    f"Allowed columns: {allowed_columns}."
+                ),
+            )
+
+
+def serialize_report_execution_parameters(
+    parameters: ReportExecutionParameters | None,
+) -> dict | None:
+    if parameters is None:
+        return None
+    serialized = parameters.model_dump(mode="json", exclude_none=True)
+    return serialized or None
 
 
 def build_report_object_name(execution: ReportExecution, template_name: str, file_type: str) -> str:

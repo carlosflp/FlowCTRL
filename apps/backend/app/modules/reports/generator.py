@@ -19,7 +19,9 @@ from app.modules.cashflow.models import CashflowEntry
 from app.modules.operations.models import Operation
 from app.modules.portfolios.models import Portfolio
 from app.modules.pricing.models import AssetPrice
+from app.modules.reports.definitions import get_report_dataset_definition, resolve_execution_dataset
 from app.modules.reports.models import ReportExecution, ReportTemplate
+from app.modules.reports.schemas import ReportExecutionParameters
 from app.modules.reports.storage import get_report_media_type
 
 PDF_PREVIEW_ROW_LIMIT = 30
@@ -37,25 +39,31 @@ def build_report_artifact(
     execution: ReportExecution,
     template: ReportTemplate,
 ) -> ReportArtifact:
-    config = template.config_json or {}
-    dataset = ReportDatasetType(config.get("dataset", ReportDatasetType.OPERATIONS.value))
+    file_type = execution.file_type or template.template_type.value
+    parameters = ReportExecutionParameters.model_validate(execution.parameters_json or {})
+    dataset = resolve_execution_dataset(template.config_json, parameters.dataset)
+    definition = get_report_dataset_definition(dataset)
+    columns = list(parameters.columns or definition.columns)
     columns, rows = build_dataset_rows(
         db,
         dataset=dataset,
         portfolio_id=execution.portfolio_id,
+        date_from=parameters.date_from,
+        date_to=parameters.date_to,
+        selected_columns=columns,
     )
 
-    if template.template_type == ReportTemplateType.CSV:
+    if file_type == ReportTemplateType.CSV.value:
         content = build_csv_content(columns, rows)
-    elif template.template_type == ReportTemplateType.XLSX:
+    elif file_type == ReportTemplateType.XLSX.value:
         content = build_xlsx_content(columns, rows)
     else:
         content = build_pdf_content(template.name, columns, rows)
 
     return ReportArtifact(
         content=content,
-        file_type=template.template_type.value,
-        media_type=get_report_media_type(template.template_type.value),
+        file_type=file_type,
+        media_type=get_report_media_type(file_type),
     )
 
 
@@ -64,20 +72,43 @@ def build_dataset_rows(
     *,
     dataset: ReportDatasetType,
     portfolio_id,
+    date_from: date | None,
+    date_to: date | None,
+    selected_columns: list[str],
 ) -> tuple[list[str], list[dict[str, object]]]:
     if dataset == ReportDatasetType.OPERATIONS:
-        return build_operations_rows(db, portfolio_id=portfolio_id)
+        return build_operations_rows(
+            db,
+            portfolio_id=portfolio_id,
+            date_from=date_from,
+            date_to=date_to,
+            selected_columns=selected_columns,
+        )
     if dataset == ReportDatasetType.CASHFLOW:
-        return build_cashflow_rows(db, portfolio_id=portfolio_id)
+        return build_cashflow_rows(
+            db,
+            portfolio_id=portfolio_id,
+            date_from=date_from,
+            date_to=date_to,
+            selected_columns=selected_columns,
+        )
     if dataset == ReportDatasetType.PRICING:
-        return build_pricing_rows(db)
-    return build_portfolios_rows(db)
+        return build_pricing_rows(
+            db,
+            date_from=date_from,
+            date_to=date_to,
+            selected_columns=selected_columns,
+        )
+    return build_portfolios_rows(db, selected_columns=selected_columns)
 
 
 def build_operations_rows(
     db: Session,
     *,
     portfolio_id,
+    date_from: date | None,
+    date_to: date | None,
+    selected_columns: list[str],
 ) -> tuple[list[str], list[dict[str, object]]]:
     statement = (
         select(Operation)
@@ -86,6 +117,10 @@ def build_operations_rows(
     )
     if portfolio_id is not None:
         statement = statement.where(Operation.portfolio_id == portfolio_id)
+    if date_from is not None:
+        statement = statement.where(Operation.trade_date >= date_from)
+    if date_to is not None:
+        statement = statement.where(Operation.trade_date <= date_to)
 
     rows = []
     for operation in db.scalars(statement):
@@ -107,25 +142,17 @@ def build_operations_rows(
             }
         )
 
-    columns = [
-        "trade_date",
-        "settlement_date",
-        "portfolio",
-        "asset",
-        "operation_type",
-        "quantity",
-        "unit_price",
-        "gross_value",
-        "net_value",
-        "fees",
-        "taxes",
-        "status",
-        "notes",
-    ]
-    return columns, rows
+    return selected_columns, rows
 
 
-def build_cashflow_rows(db: Session, *, portfolio_id) -> tuple[list[str], list[dict[str, object]]]:
+def build_cashflow_rows(
+    db: Session,
+    *,
+    portfolio_id,
+    date_from: date | None,
+    date_to: date | None,
+    selected_columns: list[str],
+) -> tuple[list[str], list[dict[str, object]]]:
     statement = (
         select(CashflowEntry)
         .options(selectinload(CashflowEntry.portfolio), selectinload(CashflowEntry.operation))
@@ -133,6 +160,10 @@ def build_cashflow_rows(db: Session, *, portfolio_id) -> tuple[list[str], list[d
     )
     if portfolio_id is not None:
         statement = statement.where(CashflowEntry.portfolio_id == portfolio_id)
+    if date_from is not None:
+        statement = statement.where(CashflowEntry.settlement_date >= date_from)
+    if date_to is not None:
+        statement = statement.where(CashflowEntry.settlement_date <= date_to)
 
     rows = []
     for entry in db.scalars(statement):
@@ -149,25 +180,26 @@ def build_cashflow_rows(db: Session, *, portfolio_id) -> tuple[list[str], list[d
             }
         )
 
-    columns = [
-        "entry_date",
-        "settlement_date",
-        "portfolio",
-        "description",
-        "entry_type",
-        "amount",
-        "status",
-        "operation_id",
-    ]
-    return columns, rows
+    return selected_columns, rows
 
 
-def build_pricing_rows(db: Session) -> tuple[list[str], list[dict[str, object]]]:
+def build_pricing_rows(
+    db: Session,
+    *,
+    date_from: date | None,
+    date_to: date | None,
+    selected_columns: list[str],
+) -> tuple[list[str], list[dict[str, object]]]:
     statement = (
         select(AssetPrice)
         .options(selectinload(AssetPrice.asset))
         .order_by(AssetPrice.price_date.desc(), AssetPrice.created_at.desc())
     )
+    if date_from is not None:
+        statement = statement.where(AssetPrice.price_date >= date_from)
+    if date_to is not None:
+        statement = statement.where(AssetPrice.price_date <= date_to)
+
     rows = []
     for price in db.scalars(statement):
         rows.append(
@@ -180,11 +212,14 @@ def build_pricing_rows(db: Session) -> tuple[list[str], list[dict[str, object]]]
             }
         )
 
-    columns = ["price_date", "asset", "price", "source", "is_validated"]
-    return columns, rows
+    return selected_columns, rows
 
 
-def build_portfolios_rows(db: Session) -> tuple[list[str], list[dict[str, object]]]:
+def build_portfolios_rows(
+    db: Session,
+    *,
+    selected_columns: list[str],
+) -> tuple[list[str], list[dict[str, object]]]:
     statement = select(Portfolio).order_by(Portfolio.name.asc())
     rows = []
     for portfolio in db.scalars(statement):
@@ -198,8 +233,7 @@ def build_portfolios_rows(db: Session) -> tuple[list[str], list[dict[str, object
             }
         )
 
-    columns = ["name", "base_currency", "benchmark", "is_active", "description"]
-    return columns, rows
+    return selected_columns, rows
 
 
 def build_csv_content(columns: list[str], rows: list[dict[str, object]]) -> bytes:

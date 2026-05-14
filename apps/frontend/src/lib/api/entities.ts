@@ -131,7 +131,13 @@ export function fetchReportExecutions(): Promise<ReportExecutionList> {
 export function createReportExecution(payload: {
   template_id: string;
   portfolio_id: string | null;
-  parameters_json: Record<string, unknown> | null;
+  file_type: "csv" | "xlsx" | "pdf";
+  parameters_json: {
+    dataset?: "operations" | "cashflow" | "pricing" | "portfolios" | null;
+    date_from?: string | null;
+    date_to?: string | null;
+    columns?: string[] | null;
+  } | null;
 }): Promise<ReportExecution> {
   return apiPost("/reports/executions", payload, reportExecutionSchema);
 }

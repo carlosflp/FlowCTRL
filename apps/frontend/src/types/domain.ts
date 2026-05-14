@@ -16,6 +16,7 @@ import {
   positionSchema,
   portfolioListSchema,
   portfolioSchema,
+  reportExecutionParametersSchema,
   reportExecutionListSchema,
   reportExecutionSchema,
   reportTemplateListSchema,
@@ -44,6 +45,7 @@ export type PositionList = z.infer<typeof positionListSchema>;
 export type PositionOverview = z.infer<typeof positionOverviewSchema>;
 export type ReportTemplate = z.infer<typeof reportTemplateSchema>;
 export type ReportTemplateList = z.infer<typeof reportTemplateListSchema>;
+export type ReportExecutionParameters = z.infer<typeof reportExecutionParametersSchema>;
 export type ReportExecution = z.infer<typeof reportExecutionSchema>;
 export type ReportExecutionList = z.infer<typeof reportExecutionListSchema>;
 export type AuthToken = z.infer<typeof authTokenSchema>;

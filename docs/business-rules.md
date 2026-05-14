@@ -153,6 +153,14 @@ Nesta etapa, os relatorios passaram a operar com as seguintes regras:
 - artefatos gerados sao gravados no MinIO e nao no banco
 - downloads sao autenticados pela API
 - o `file_path` persistido representa a chave do objeto no bucket
+- o formato do artefato passou a ser escolha da execucao, e nao identidade fixa do template
+- templates padrao agora representam datasets reaproveitaveis, nao variacoes por tipo de arquivo
+- filtros de periodo usam apenas datasets com base temporal explicita
+- filtro por carteira so pode ser aplicado a datasets que realmente possuem escopo por carteira
+- selecao de colunas deve respeitar o conjunto permitido de cada dataset
+- quando nenhuma coluna customizada e enviada, a exportacao usa o conjunto padrao completo do dataset
+- o template especial de `Relatorio Personalizado` pode sobrescrever o dataset na execucao
+- sobrescrita de dataset nao e permitida em templates comuns
 
 Proximas expansoes naturais:
 

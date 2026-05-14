@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -9,7 +9,7 @@ from app.core.enums import ReportDatasetType, ReportExecutionStatus, ReportTempl
 class ReportTemplateBase(BaseModel):
     name: str = Field(min_length=3, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
-    template_type: ReportTemplateType
+    template_type: ReportTemplateType = ReportTemplateType.XLSX
     config_json: dict | None = None
     is_active: bool = True
 
@@ -64,8 +64,40 @@ class ReportExecutionPortfolioSummary(BaseModel):
     name: str
 
 
+class ReportExecutionParameters(BaseModel):
+    dataset: ReportDatasetType | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+    columns: list[str] | None = None
+
+    @model_validator(mode="after")
+    def validate_parameters(self) -> "ReportExecutionParameters":
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValueError("date_from cannot be later than date_to.")
+
+        if self.columns is not None:
+            normalized_columns: list[str] = []
+            seen_columns: set[str] = set()
+            for column in self.columns:
+                normalized = column.strip()
+                if not normalized:
+                    raise ValueError("columns cannot contain blank values.")
+                if normalized in seen_columns:
+                    continue
+                normalized_columns.append(normalized)
+                seen_columns.add(normalized)
+
+            if not normalized_columns:
+                raise ValueError("columns must contain at least one value when provided.")
+
+            self.columns = normalized_columns
+
+        return self
+
+
 class ReportExecutionBase(BaseModel):
-    parameters_json: dict | None = None
+    file_type: ReportTemplateType | None = None
+    parameters_json: ReportExecutionParameters | None = None
 
 
 class ReportExecutionCreate(ReportExecutionBase):
@@ -80,9 +112,9 @@ class ReportExecutionRead(BaseModel):
     template_id: uuid.UUID
     portfolio_id: uuid.UUID | None
     status: ReportExecutionStatus
-    parameters_json: dict | None
+    parameters_json: ReportExecutionParameters | None
     file_path: str | None
-    file_type: str | None
+    file_type: ReportTemplateType | None
     created_at: datetime
     finished_at: datetime | None
     template: ReportTemplateSummary

@@ -6,6 +6,8 @@ import { Download, LoaderCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import type { ReportExecution } from "@/types/domain";
 
+import { getReportDatasetConfig } from "./report-dataset-config";
+
 type ExecutionColumnsOptions = {
   downloadingExecutionId: string | null;
   onDownload: (execution: ReportExecution) => void;
@@ -15,6 +17,30 @@ export function getReportExecutionColumns({
   downloadingExecutionId,
   onDownload,
 }: ExecutionColumnsOptions): ColumnDef<ReportExecution>[] {
+  function buildExecutionTemplateLabel(execution: ReportExecution) {
+    const dataset = execution.parameters_json?.dataset;
+    if (!dataset) {
+      return execution.template.name;
+    }
+    return `${execution.template.name} (${getReportDatasetConfig(dataset).label})`;
+  }
+
+  function buildExecutionScopeLabel(execution: ReportExecution) {
+    const parameters = execution.parameters_json;
+    const scopeParts: string[] = [];
+
+    if (parameters?.date_from || parameters?.date_to) {
+      const from = parameters.date_from ?? "...";
+      const to = parameters.date_to ?? "...";
+      scopeParts.push(`${from} ate ${to}`);
+    }
+    if (parameters?.columns?.length) {
+      scopeParts.push(`${parameters.columns.length} colunas`);
+    }
+
+    return scopeParts.length > 0 ? scopeParts.join(" | ") : "Padrao";
+  }
+
   return [
     {
       accessorKey: "created_at",
@@ -24,12 +50,17 @@ export function getReportExecutionColumns({
     {
       id: "template",
       header: "Template",
-      cell: ({ row }) => row.original.template.name,
+      cell: ({ row }) => buildExecutionTemplateLabel(row.original),
     },
     {
       id: "portfolio",
       header: "Carteira",
       cell: ({ row }) => row.original.portfolio?.name ?? "Todas",
+    },
+    {
+      id: "filters",
+      header: "Escopo",
+      cell: ({ row }) => buildExecutionScopeLabel(row.original),
     },
     {
       accessorKey: "status",
