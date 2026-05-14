@@ -137,6 +137,12 @@ Some small structural adjustments were kept from the original proposal because t
 - a dedicated "Relatorio personalizado" flow lets users choose dataset, columns, scope and file format
 - recent execution history now identifies custom dataset overrides alongside the selected export format
 
+### Stage 10: audit attribution for authenticated actors
+
+- audit logs now capture the authenticated `user_id` responsible for operations, cashflow, pricing and report mutations
+- report template changes and report execution requests now preserve the acting user for governance and traceability
+- backend tests now validate actor attribution directly against persisted `audit_logs`
+
 ## Roles
 
 - `admin`: full access

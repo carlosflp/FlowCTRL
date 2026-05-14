@@ -57,7 +57,12 @@ def _serialize_operation(operation: Operation) -> dict:
     return model_to_dict(operation)
 
 
-def create_operation(db: Session, payload: OperationCreate) -> Operation:
+def create_operation(
+    db: Session,
+    payload: OperationCreate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Operation:
     _ensure_portfolio_exists(db, payload.portfolio_id)
     _ensure_asset_exists(db, payload.asset_id)
 
@@ -81,12 +86,19 @@ def create_operation(db: Session, payload: OperationCreate) -> Operation:
         entity_id=str(operation.id),
         action=AuditAction.CREATED,
         new_value=_serialize_operation(operation),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_operation_or_404(db, operation.id)
 
 
-def update_operation(db: Session, operation: Operation, payload: OperationUpdate) -> Operation:
+def update_operation(
+    db: Session,
+    operation: Operation,
+    payload: OperationUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Operation:
     old_value = _serialize_operation(operation)
     updates = payload.model_dump(exclude_unset=True)
 
@@ -128,12 +140,18 @@ def update_operation(db: Session, operation: Operation, payload: OperationUpdate
         action=AuditAction.UPDATED,
         old_value=old_value,
         new_value=_serialize_operation(operation),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_operation_or_404(db, operation.id)
 
 
-def delete_operation(db: Session, operation: Operation) -> None:
+def delete_operation(
+    db: Session,
+    operation: Operation,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
     old_value = _serialize_operation(operation)
     create_audit_log(
         db,
@@ -141,6 +159,7 @@ def delete_operation(db: Session, operation: Operation) -> None:
         entity_id=str(operation.id),
         action=AuditAction.DELETED,
         old_value=old_value,
+        user_id=actor_user_id,
     )
     db.flush()
     db.delete(operation)

@@ -40,7 +40,7 @@ def create_report_template_endpoint(
     current_user: ManageAccessUser,
     db: Session = Depends(get_db),
 ) -> ReportTemplateRead:
-    return create_report_template(db, payload)
+    return create_report_template(db, payload, actor_user_id=current_user.id)
 
 
 @router.get("/templates/{template_id}", response_model=ReportTemplateRead)
@@ -60,7 +60,7 @@ def update_report_template_endpoint(
     db: Session = Depends(get_db),
 ) -> ReportTemplateRead:
     template = get_report_template_or_404(db, template_id)
-    return update_report_template(db, template, payload)
+    return update_report_template(db, template, payload, actor_user_id=current_user.id)
 
 
 @router.get("/executions", response_model=list[ReportExecutionRead])
@@ -77,7 +77,7 @@ def create_report_execution_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> ReportExecutionRead:
-    return create_report_execution(db, payload)
+    return create_report_execution(db, payload, actor_user_id=current_user.id)
 
 
 @router.get("/executions/{execution_id}", response_model=ReportExecutionRead)

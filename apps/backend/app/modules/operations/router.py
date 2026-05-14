@@ -31,7 +31,7 @@ def create_operation_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> OperationRead:
-    return create_operation(db, payload)
+    return create_operation(db, payload, actor_user_id=current_user.id)
 
 
 @router.get("/{operation_id}", response_model=OperationRead)
@@ -51,7 +51,7 @@ def update_operation_endpoint(
     db: Session = Depends(get_db),
 ) -> OperationRead:
     operation = get_operation_or_404(db, operation_id)
-    return update_operation(db, operation, payload)
+    return update_operation(db, operation, payload, actor_user_id=current_user.id)
 
 
 @router.delete("/{operation_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -61,5 +61,5 @@ def delete_operation_endpoint(
     db: Session = Depends(get_db),
 ) -> Response:
     operation = get_operation_or_404(db, operation_id)
-    delete_operation(db, operation)
+    delete_operation(db, operation, actor_user_id=current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -31,7 +31,7 @@ def create_asset_price_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> AssetPriceRead:
-    return create_asset_price(db, payload)
+    return create_asset_price(db, payload, actor_user_id=current_user.id)
 
 
 @router.get("/{price_id}", response_model=AssetPriceRead)
@@ -51,7 +51,7 @@ def update_asset_price_endpoint(
     db: Session = Depends(get_db),
 ) -> AssetPriceRead:
     price = get_asset_price_or_404(db, price_id)
-    return update_asset_price(db, price, payload)
+    return update_asset_price(db, price, payload, actor_user_id=current_user.id)
 
 
 @router.delete("/{price_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -61,5 +61,5 @@ def delete_asset_price_endpoint(
     db: Session = Depends(get_db),
 ) -> Response:
     price = get_asset_price_or_404(db, price_id)
-    delete_asset_price(db, price)
+    delete_asset_price(db, price, actor_user_id=current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

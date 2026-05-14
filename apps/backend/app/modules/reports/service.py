@@ -121,7 +121,12 @@ def get_report_template_or_404(db: Session, template_id: uuid.UUID) -> ReportTem
     return template
 
 
-def create_report_template(db: Session, payload: ReportTemplateCreate) -> ReportTemplate:
+def create_report_template(
+    db: Session,
+    payload: ReportTemplateCreate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> ReportTemplate:
     ensure_template_name_is_available(db, payload.name)
     validate_report_template_config(payload.config_json)
 
@@ -134,6 +139,7 @@ def create_report_template(db: Session, payload: ReportTemplateCreate) -> Report
         entity_id=str(template.id),
         action=AuditAction.CREATED,
         new_value=model_to_dict(template),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_report_template_or_404(db, template.id)
@@ -143,6 +149,8 @@ def update_report_template(
     db: Session,
     template: ReportTemplate,
     payload: ReportTemplateUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
 ) -> ReportTemplate:
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -167,6 +175,7 @@ def update_report_template(
         action=AuditAction.UPDATED,
         old_value=old_value,
         new_value=model_to_dict(template),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_report_template_or_404(db, template.id)
@@ -202,7 +211,12 @@ def get_report_execution_or_404(db: Session, execution_id: uuid.UUID) -> ReportE
     return execution
 
 
-def create_report_execution(db: Session, payload: ReportExecutionCreate) -> ReportExecution:
+def create_report_execution(
+    db: Session,
+    payload: ReportExecutionCreate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> ReportExecution:
     template = get_report_template_or_404(db, payload.template_id)
     if not template.is_active:
         raise HTTPException(
@@ -239,6 +253,7 @@ def create_report_execution(db: Session, payload: ReportExecutionCreate) -> Repo
         entity_id=str(execution.id),
         action=AuditAction.CREATED,
         new_value=model_to_dict(execution),
+        user_id=actor_user_id,
     )
     db.commit()
 

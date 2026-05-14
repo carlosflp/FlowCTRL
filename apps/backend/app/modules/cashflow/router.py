@@ -31,7 +31,7 @@ def create_cashflow_entry_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> CashflowEntryRead:
-    return create_cashflow_entry(db, payload)
+    return create_cashflow_entry(db, payload, actor_user_id=current_user.id)
 
 
 @router.get("/{entry_id}", response_model=CashflowEntryRead)
@@ -51,7 +51,7 @@ def update_cashflow_entry_endpoint(
     db: Session = Depends(get_db),
 ) -> CashflowEntryRead:
     entry = get_cashflow_entry_or_404(db, entry_id)
-    return update_cashflow_entry(db, entry, payload)
+    return update_cashflow_entry(db, entry, payload, actor_user_id=current_user.id)
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -61,5 +61,5 @@ def delete_cashflow_entry_endpoint(
     db: Session = Depends(get_db),
 ) -> Response:
     entry = get_cashflow_entry_or_404(db, entry_id)
-    delete_cashflow_entry(db, entry)
+    delete_cashflow_entry(db, entry, actor_user_id=current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

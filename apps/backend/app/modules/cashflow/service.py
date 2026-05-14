@@ -74,7 +74,12 @@ def _validate_operation_portfolio_link(
         )
 
 
-def create_cashflow_entry(db: Session, payload: CashflowEntryCreate) -> CashflowEntry:
+def create_cashflow_entry(
+    db: Session,
+    payload: CashflowEntryCreate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> CashflowEntry:
     _validate_operation_portfolio_link(
         db,
         portfolio_id=payload.portfolio_id,
@@ -90,6 +95,7 @@ def create_cashflow_entry(db: Session, payload: CashflowEntryCreate) -> Cashflow
         entity_id=str(entry.id),
         action=AuditAction.CREATED,
         new_value=model_to_dict(entry),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_cashflow_entry_or_404(db, entry.id)
@@ -99,6 +105,8 @@ def update_cashflow_entry(
     db: Session,
     entry: CashflowEntry,
     payload: CashflowEntryUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
 ) -> CashflowEntry:
     old_value = model_to_dict(entry)
     updates = payload.model_dump(exclude_unset=True)
@@ -129,18 +137,25 @@ def update_cashflow_entry(
         action=AuditAction.UPDATED,
         old_value=old_value,
         new_value=model_to_dict(entry),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_cashflow_entry_or_404(db, entry.id)
 
 
-def delete_cashflow_entry(db: Session, entry: CashflowEntry) -> None:
+def delete_cashflow_entry(
+    db: Session,
+    entry: CashflowEntry,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
     create_audit_log(
         db,
         entity_type="cashflow_entry",
         entity_id=str(entry.id),
         action=AuditAction.DELETED,
         old_value=model_to_dict(entry),
+        user_id=actor_user_id,
     )
     db.flush()
     db.delete(entry)

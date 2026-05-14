@@ -71,6 +71,16 @@ Em cada um desses dominios:
 - atualizacao gera `AuditLog`
 - exclusao gera `AuditLog`
 - os payloads anterior e posterior sao guardados em JSON
+- quando a acao parte de um usuario autenticado, o `user_id` do ator e persistido no log
+
+Cobertura atual de atribuicao do ator autenticado:
+
+- `operations`
+- `cashflow_entries`
+- `asset_prices`
+- `report_templates`
+- `report_executions`
+- `users`
 
 Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, revisao interna e compliance operacional.
 

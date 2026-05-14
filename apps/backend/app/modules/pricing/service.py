@@ -62,7 +62,12 @@ def _ensure_unique_price(
         )
 
 
-def create_asset_price(db: Session, payload: AssetPriceCreate) -> AssetPrice:
+def create_asset_price(
+    db: Session,
+    payload: AssetPriceCreate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> AssetPrice:
     _ensure_asset_exists(db, payload.asset_id)
     _ensure_unique_price(
         db,
@@ -80,12 +85,19 @@ def create_asset_price(db: Session, payload: AssetPriceCreate) -> AssetPrice:
         entity_id=str(price.id),
         action=AuditAction.CREATED,
         new_value=model_to_dict(price),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_asset_price_or_404(db, price.id)
 
 
-def update_asset_price(db: Session, price: AssetPrice, payload: AssetPriceUpdate) -> AssetPrice:
+def update_asset_price(
+    db: Session,
+    price: AssetPrice,
+    payload: AssetPriceUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> AssetPrice:
     old_value = model_to_dict(price)
     updates = payload.model_dump(exclude_unset=True)
 
@@ -113,18 +125,25 @@ def update_asset_price(db: Session, price: AssetPrice, payload: AssetPriceUpdate
         action=AuditAction.UPDATED,
         old_value=old_value,
         new_value=model_to_dict(price),
+        user_id=actor_user_id,
     )
     db.commit()
     return get_asset_price_or_404(db, price.id)
 
 
-def delete_asset_price(db: Session, price: AssetPrice) -> None:
+def delete_asset_price(
+    db: Session,
+    price: AssetPrice,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
     create_audit_log(
         db,
         entity_type="asset_price",
         entity_id=str(price.id),
         action=AuditAction.DELETED,
         old_value=model_to_dict(price),
+        user_id=actor_user_id,
     )
     db.flush()
     db.delete(price)
