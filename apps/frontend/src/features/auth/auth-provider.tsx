@@ -21,6 +21,7 @@ type AuthContextValue = {
   isInitialized: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateCurrentUser: (nextUser: User) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -37,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.clear();
     router.replace("/login");
   }, [queryClient, router]);
+
+  const updateCurrentUser = useCallback((nextUser: User) => {
+    setUser(nextUser);
+  }, []);
 
   const loadCurrentUser = useCallback(async (token: string) => {
     try {
@@ -82,8 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isInitialized,
       login,
       logout,
+      updateCurrentUser,
     }),
-    [isInitialized, login, logout, user],
+    [isInitialized, login, logout, updateCurrentUser, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

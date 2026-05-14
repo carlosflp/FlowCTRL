@@ -12,6 +12,7 @@ The repository now includes:
 - CRUD APIs for portfolios, assets, operations, cashflow and pricing
 - consolidated position endpoints by portfolio and asset
 - administrative user management APIs and admin screen
+- self-service profile maintenance and password change for authenticated users
 - async reporting with Celery and MinIO
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
@@ -113,6 +114,13 @@ Some small structural adjustments were kept from the original proposal because t
 - create and update workflows for internal accounts
 - role and active-status management without relying on `.env`
 - safeguards to avoid removing the last active admin
+
+### Stage 7: self-service account maintenance
+
+- authenticated users can update their own full name and email
+- authenticated users can change their own password by confirming the current credential
+- frontend account screen for profile maintenance without exposing role escalation
+- session shell now exposes a direct "Minha conta" entry for protected users
 
 ## Roles
 
@@ -235,6 +243,8 @@ npm run build
 - `GET /api/v1/auth/status`
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
+- `PUT /api/v1/auth/me`
+- `POST /api/v1/auth/change-password`
 
 ### Users
 
@@ -314,7 +324,7 @@ Validated in the current stage:
 ## Recommended next steps
 
 1. Expand position handling for corporate actions, transfers and richer valuation rules.
-2. Add user self-service for password change and profile maintenance.
-3. Expand report filters by date range, portfolio scope and custom columns.
-4. Expand audit context with authenticated user attribution across all domains.
-5. Add CI for backend tests, frontend build and linting.
+2. Expand report filters by date range, portfolio scope and custom columns.
+3. Expand audit context with authenticated user attribution across all domains.
+4. Add CI for backend tests, frontend build and linting.
+5. Expand account security with password policy, reset flow and session expiration controls.

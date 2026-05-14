@@ -185,6 +185,10 @@ export const authTokenSchema = z.object({
   user: userSchema,
 });
 
+export const actionResponseSchema = z.object({
+  detail: z.string(),
+});
+
 export const userListSchema = z.array(userSchema);
 export const portfolioListSchema = z.array(portfolioSchema);
 export const assetListSchema = z.array(assetSchema);

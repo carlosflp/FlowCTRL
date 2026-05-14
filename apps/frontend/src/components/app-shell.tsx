@@ -12,6 +12,7 @@ import {
   LogOut,
   PieChart,
   ShieldCheck,
+  UserRound,
   Wallet,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const isProfileRoute = pathname === "/profile";
   const navigationItems =
     user?.role === "admin"
       ? [...navigation, { href: "/users", label: "Usuarios", icon: ShieldCheck }]
@@ -78,10 +80,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="border-t border-border px-7 py-5 text-sm text-muted">
             <div className="font-medium text-ink">{user?.full_name}</div>
             <div className="mt-1 lowercase">{user?.role}</div>
+            <Link
+              href="/profile"
+              className={cn(
+                "mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                isProfileRoute
+                  ? "border-accent bg-accentSoft text-accent"
+                  : "border-border text-ink hover:bg-[#f0efeb]",
+              )}
+            >
+              <UserRound className="h-4 w-4" />
+              <span>Minha conta</span>
+            </Link>
             <button
               type="button"
               onClick={logout}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink transition hover:bg-[#f0efeb]"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink transition hover:bg-[#f0efeb]"
             >
               <LogOut className="h-4 w-4" />
               <span>Logout</span>
@@ -93,14 +107,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <header className="border-b border-border bg-surface px-5 py-4 lg:hidden">
             <div className="flex items-center justify-between">
               <div className="text-lg font-semibold">FlowCTRL</div>
-              <button
-                type="button"
-                onClick={logout}
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/profile"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
+                    isProfileRoute
+                      ? "border-accent bg-accentSoft text-accent"
+                      : "border-border text-ink",
+                  )}
+                >
+                  <UserRound className="h-4 w-4" />
+                  <span>Conta</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           </header>
           <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8">{children}</main>

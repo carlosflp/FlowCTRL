@@ -147,6 +147,7 @@ def update_user(
     user: User,
     payload: UserUpdate,
     actor_user: User,
+    enforce_self_admin_protection: bool = True,
 ) -> User:
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -165,7 +166,7 @@ def update_user(
     )
     new_is_active = updates.get("is_active", user.is_active)
 
-    if user.id == actor_user.id and (
+    if enforce_self_admin_protection and user.id == actor_user.id and (
         not new_is_active or not new_is_superuser or new_role != UserRole.ADMIN
     ):
         raise HTTPException(

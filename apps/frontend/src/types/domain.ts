@@ -1,6 +1,7 @@
 import type { z } from "zod";
 
 import {
+  actionResponseSchema,
   assetListSchema,
   assetPriceListSchema,
   assetPriceSchema,
@@ -27,6 +28,7 @@ import {
 export type User = z.infer<typeof userSchema>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserList = z.infer<typeof userListSchema>;
+export type ActionResponse = z.infer<typeof actionResponseSchema>;
 export type Portfolio = z.infer<typeof portfolioSchema>;
 export type PortfolioList = z.infer<typeof portfolioListSchema>;
 export type Asset = z.infer<typeof assetSchema>;

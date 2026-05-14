@@ -1,4 +1,5 @@
 import {
+  actionResponseSchema,
   assetListSchema,
   assetPriceListSchema,
   cashflowEntryListSchema,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/api/schemas";
 import { apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
 import type {
+  ActionResponse,
   AssetList,
   AssetPriceList,
   CashflowEntryList,
@@ -102,6 +104,20 @@ export function updateUser(
   },
 ): Promise<User> {
   return apiPut(`/users/${userId}`, payload, userSchema);
+}
+
+export function updateOwnProfile(payload: {
+  email: string;
+  full_name: string;
+}): Promise<User> {
+  return apiPut("/auth/me", payload, userSchema);
+}
+
+export function changeOwnPassword(payload: {
+  current_password: string;
+  new_password: string;
+}): Promise<ActionResponse> {
+  return apiPost("/auth/change-password", payload, actionResponseSchema);
 }
 
 export function fetchReportTemplates(): Promise<ReportTemplateList> {

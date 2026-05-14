@@ -16,6 +16,20 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=8)
 
 
+class AuthProfileUpdateRequest(BaseModel):
+    email: str
+    full_name: str = Field(min_length=3)
+
+
+class AuthPasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=8)
+
+
+class AuthActionResponse(BaseModel):
+    detail: str
+
+
 class AccessTokenResponse(BaseModel):
     access_token: str
     token_type: str

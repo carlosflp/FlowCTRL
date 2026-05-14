@@ -88,6 +88,19 @@ Regras aplicadas:
 - a plataforma impede a remocao do ultimo admin ativo
 - a tela administrativa protege o usuario autenticado contra perda acidental do proprio acesso
 
+## Regras iniciais de autosservico da conta
+
+Foi adicionada uma trilha de manutencao do proprio cadastro para usuarios autenticados.
+
+Regras aplicadas:
+
+- qualquer usuario autenticado pode consultar seus proprios dados por `/auth/me`
+- qualquer usuario autenticado pode atualizar apenas `full_name` e `email` no proprio cadastro
+- alteracao de perfil, ativacao da conta e privilegios administrativos continuam restritos a tela de usuarios
+- troca de senha exige confirmacao da senha atual
+- a nova senha nao pode ser igual a senha atual
+- alteracoes feitas pelo proprio usuario continuam gerando trilha de auditoria no dominio `user`
+
 ## Regras iniciais de posicao
 
 O modulo de posicao entrou como consolidacao read-only, sem tabela dedicada nesta fase.
