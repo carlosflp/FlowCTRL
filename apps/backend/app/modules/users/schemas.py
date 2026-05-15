@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.enums import UserRole
+from app.modules.portfolios.schemas import PortfolioScopeRead
 
 
 class UserRead(BaseModel):
@@ -15,6 +16,7 @@ class UserRead(BaseModel):
     is_active: bool
     is_superuser: bool
     role: UserRole
+    accessible_portfolios: list[PortfolioScopeRead]
     created_at: datetime
     updated_at: datetime
 
@@ -26,6 +28,7 @@ class UserCreate(BaseModel):
     role: UserRole = UserRole.VIEWER
     is_active: bool = True
     is_superuser: bool = False
+    portfolio_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class UserUpdate(BaseModel):
@@ -35,3 +38,4 @@ class UserUpdate(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = None
     is_superuser: bool | None = None
+    portfolio_ids: list[uuid.UUID] | None = None

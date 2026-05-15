@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -67,8 +67,9 @@ def update_report_template_endpoint(
 def read_report_executions(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
+    portfolio_id: uuid.UUID | None = Query(default=None),
 ) -> list[ReportExecutionRead]:
-    return list_report_executions(db)
+    return list_report_executions(db, current_user=current_user, portfolio_id=portfolio_id)
 
 
 @router.post("/executions", response_model=ReportExecutionRead, status_code=status.HTTP_201_CREATED)
@@ -77,7 +78,12 @@ def create_report_execution_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> ReportExecutionRead:
-    return create_report_execution(db, payload, actor_user_id=current_user.id)
+    return create_report_execution(
+        db,
+        payload,
+        current_user=current_user,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.get("/executions/{execution_id}", response_model=ReportExecutionRead)
@@ -86,7 +92,7 @@ def read_report_execution(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> ReportExecutionRead:
-    return get_report_execution_or_404(db, execution_id)
+    return get_report_execution_or_404(db, execution_id, current_user=current_user)
 
 
 @router.get("/executions/{execution_id}/download")
@@ -95,7 +101,11 @@ def download_report_execution(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> Response:
-    filename, file_type, content = get_report_download_payload(db, execution_id)
+    filename, file_type, content = get_report_download_payload(
+        db,
+        execution_id,
+        current_user=current_user,
+    )
     media_types = {
         "csv": "text/csv",
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

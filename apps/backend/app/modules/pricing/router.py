@@ -20,9 +20,10 @@ router = APIRouter(prefix="/pricing", tags=["pricing"])
 @router.get("", response_model=list[AssetPriceRead])
 def read_asset_prices(
     current_user: ReadAccessUser,
+    portfolio_id: uuid.UUID | None = None,
     db: Session = Depends(get_db),
 ) -> list[AssetPriceRead]:
-    return list_asset_prices(db)
+    return list_asset_prices(db, current_user=current_user, portfolio_id=portfolio_id)
 
 
 @router.post("", response_model=AssetPriceRead, status_code=status.HTTP_201_CREATED)
@@ -40,7 +41,7 @@ def read_asset_price(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> AssetPriceRead:
-    return get_asset_price_or_404(db, price_id)
+    return get_asset_price_or_404(db, price_id, current_user=current_user)
 
 
 @router.put("/{price_id}", response_model=AssetPriceRead)
@@ -50,7 +51,7 @@ def update_asset_price_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> AssetPriceRead:
-    price = get_asset_price_or_404(db, price_id)
+    price = get_asset_price_or_404(db, price_id, current_user=current_user)
     return update_asset_price(db, price, payload, actor_user_id=current_user.id)
 
 
@@ -60,6 +61,6 @@ def delete_asset_price_endpoint(
     current_user: DeleteAccessUser,
     db: Session = Depends(get_db),
 ) -> Response:
-    price = get_asset_price_or_404(db, price_id)
+    price = get_asset_price_or_404(db, price_id, current_user=current_user)
     delete_asset_price(db, price, actor_user_id=current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

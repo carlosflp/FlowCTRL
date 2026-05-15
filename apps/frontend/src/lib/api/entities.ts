@@ -1,5 +1,6 @@
 import {
   actionResponseSchema,
+  auditLogListSchema,
   assetListSchema,
   assetPriceListSchema,
   cashflowEntryListSchema,
@@ -16,6 +17,7 @@ import {
 import { apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
 import type {
   ActionResponse,
+  AuditLogList,
   AssetList,
   AssetPriceList,
   CashflowEntryList,
@@ -30,10 +32,64 @@ import type {
   UserList,
 } from "@/types/domain";
 
+type AuditLogFilters = {
+  entityType?: string | null;
+  action?: "created" | "updated" | "deleted" | null;
+  userId?: string | null;
+  search?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  limit?: number;
+};
+
 type PositionFilters = {
   portfolioId?: string | null;
   asOfDate?: string | null;
 };
+
+type PortfolioScopedFilters = {
+  portfolioId?: string | null;
+};
+
+function buildAuditQueryString(filters: AuditLogFilters): string {
+  const params = new URLSearchParams();
+
+  if (filters.entityType) {
+    params.set("entity_type", filters.entityType);
+  }
+  if (filters.action) {
+    params.set("action", filters.action);
+  }
+  if (filters.userId) {
+    params.set("user_id", filters.userId);
+  }
+  if (filters.search) {
+    params.set("search", filters.search);
+  }
+  if (filters.dateFrom) {
+    params.set("date_from", filters.dateFrom);
+  }
+  if (filters.dateTo) {
+    params.set("date_to", filters.dateTo);
+  }
+  if (filters.limit) {
+    params.set("limit", String(filters.limit));
+  }
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : "";
+}
+
+function buildPortfolioScopedQueryString(filters: PortfolioScopedFilters): string {
+  const params = new URLSearchParams();
+
+  if (filters.portfolioId) {
+    params.set("portfolio_id", filters.portfolioId);
+  }
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : "";
+}
 
 function buildPositionQueryString(filters: PositionFilters): string {
   const params = new URLSearchParams();
@@ -57,20 +113,24 @@ export function fetchUsers(): Promise<UserList> {
   return apiGet("/users", userListSchema);
 }
 
-export function fetchAssets(): Promise<AssetList> {
-  return apiGet("/assets", assetListSchema);
+export function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogList> {
+  return apiGet(`/audit${buildAuditQueryString(filters)}`, auditLogListSchema);
 }
 
-export function fetchOperations(): Promise<OperationList> {
-  return apiGet("/operations", operationListSchema);
+export function fetchAssets(filters: PortfolioScopedFilters = {}): Promise<AssetList> {
+  return apiGet(`/assets${buildPortfolioScopedQueryString(filters)}`, assetListSchema);
 }
 
-export function fetchCashflowEntries(): Promise<CashflowEntryList> {
-  return apiGet("/cashflow", cashflowEntryListSchema);
+export function fetchOperations(filters: PortfolioScopedFilters = {}): Promise<OperationList> {
+  return apiGet(`/operations${buildPortfolioScopedQueryString(filters)}`, operationListSchema);
 }
 
-export function fetchAssetPrices(): Promise<AssetPriceList> {
-  return apiGet("/pricing", assetPriceListSchema);
+export function fetchCashflowEntries(filters: PortfolioScopedFilters = {}): Promise<CashflowEntryList> {
+  return apiGet(`/cashflow${buildPortfolioScopedQueryString(filters)}`, cashflowEntryListSchema);
+}
+
+export function fetchAssetPrices(filters: PortfolioScopedFilters = {}): Promise<AssetPriceList> {
+  return apiGet(`/pricing${buildPortfolioScopedQueryString(filters)}`, assetPriceListSchema);
 }
 
 export function fetchPositions(filters: PositionFilters = {}): Promise<PositionList> {
@@ -88,6 +148,7 @@ export function createUser(payload: {
   role: "admin" | "manager" | "analyst" | "viewer";
   is_active: boolean;
   is_superuser?: boolean;
+  portfolio_ids?: string[];
 }): Promise<User> {
   return apiPost("/users", payload, userSchema);
 }
@@ -101,6 +162,7 @@ export function updateUser(
     role?: "admin" | "manager" | "analyst" | "viewer";
     is_active?: boolean;
     is_superuser?: boolean;
+    portfolio_ids?: string[];
   },
 ): Promise<User> {
   return apiPut(`/users/${userId}`, payload, userSchema);
@@ -124,8 +186,8 @@ export function fetchReportTemplates(): Promise<ReportTemplateList> {
   return apiGet("/reports/templates", reportTemplateListSchema);
 }
 
-export function fetchReportExecutions(): Promise<ReportExecutionList> {
-  return apiGet("/reports/executions", reportExecutionListSchema);
+export function fetchReportExecutions(filters: PortfolioScopedFilters = {}): Promise<ReportExecutionList> {
+  return apiGet(`/reports/executions${buildPortfolioScopedQueryString(filters)}`, reportExecutionListSchema);
 }
 
 export function createReportExecution(payload: {

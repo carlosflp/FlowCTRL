@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePortfolioScope } from "@/components/portfolio-scope-provider";
 import { SearchToolbar } from "@/components/search-toolbar";
 import { fetchOperations } from "@/lib/api/entities";
 
@@ -13,9 +14,10 @@ import { operationColumns } from "./columns";
 
 export function OperationList() {
   const [query, setQuery] = useState("");
+  const { activePortfolio, activePortfolioId } = usePortfolioScope();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["operations"],
-    queryFn: fetchOperations,
+    queryKey: ["operations", activePortfolioId],
+    queryFn: () => fetchOperations({ portfolioId: activePortfolioId }),
   });
 
   const filteredData = useMemo(() => {
@@ -40,23 +42,26 @@ export function OperationList() {
   return (
     <section>
       <PageHeader
-        title="Operações"
-        description="Registro operacional das transações com dados suficientes para auditoria, caixa, posição e relatórios futuros."
+        title="Operacoes"
+        description={
+          activePortfolio
+            ? `Registro operacional filtrado pela carteira ativa ${activePortfolio.name}.`
+            : "Registro operacional da carteira selecionada."
+        }
       />
 
       <SearchToolbar placeholder="Buscar por carteira, ativo, tipo ou status" onSearch={setQuery} />
 
       {isLoading ? (
-        <EmptyState title="Carregando operações" description="Buscando o histórico operacional disponível." />
+        <EmptyState title="Carregando operacoes" description="Buscando o historico operacional da carteira ativa." />
       ) : isError ? (
         <EmptyState
-          title="Não foi possível carregar as operações"
-          description="Confira se a API está disponível e se o banco já foi migrado antes de usar esta tela."
+          title="Nao foi possivel carregar as operacoes"
+          description="Confira se a API esta disponivel e se a carteira ativa continua acessivel para este usuario."
         />
       ) : (
-        <DataTable columns={operationColumns} data={filteredData} emptyMessage="Nenhuma operação encontrada." />
+        <DataTable columns={operationColumns} data={filteredData} emptyMessage="Nenhuma operacao encontrada para a carteira ativa." />
       )}
     </section>
   );
 }
-

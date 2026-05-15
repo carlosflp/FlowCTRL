@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
 
+import uuid
+
+from app.modules.portfolios.service import replace_user_portfolio_access
+
 
 def _create_portfolio(client: TestClient, headers: dict[str, str], name: str) -> dict:
     response = client.post(
@@ -278,6 +282,8 @@ def test_position_overview_filters_by_portfolio(
 def test_positions_endpoint_is_accessible_to_viewer(
     client: TestClient,
     admin_auth_headers: dict[str, str],
+    db_session,
+    viewer_user,
     viewer_auth_headers: dict[str, str],
 ) -> None:
     portfolio = _create_portfolio(client, admin_auth_headers, "Viewer Scope")
@@ -294,6 +300,13 @@ def test_positions_endpoint_is_accessible_to_viewer(
         unit_price="10",
         status="approved",
     )
+
+    replace_user_portfolio_access(
+        db_session,
+        user=viewer_user,
+        portfolio_ids=[uuid.UUID(portfolio["id"])],
+    )
+    db_session.commit()
 
     response = client.get("/api/v1/positions", headers=viewer_auth_headers)
 

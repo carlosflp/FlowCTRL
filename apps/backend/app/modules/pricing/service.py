@@ -7,21 +7,42 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.enums import AuditAction
 from app.db.utils import model_to_dict
 from app.modules.assets.models import Asset
+from app.modules.assets.service import get_accessible_asset_ids
 from app.modules.audit.service import create_audit_log
 from app.modules.pricing.models import AssetPrice
 from app.modules.pricing.schemas import AssetPriceCreate, AssetPriceUpdate
+from app.modules.users.models import User
 
 
-def list_asset_prices(db: Session) -> list[AssetPrice]:
+def list_asset_prices(
+    db: Session,
+    *,
+    current_user: User,
+    portfolio_id: uuid.UUID | None = None,
+) -> list[AssetPrice]:
+    accessible_asset_ids = get_accessible_asset_ids(
+        db,
+        current_user=current_user,
+        portfolio_id=portfolio_id,
+    )
     statement = (
         select(AssetPrice)
         .options(selectinload(AssetPrice.asset))
         .order_by(AssetPrice.price_date.desc(), AssetPrice.created_at.desc())
     )
+    if accessible_asset_ids is not None:
+        if not accessible_asset_ids:
+            return []
+        statement = statement.where(AssetPrice.asset_id.in_(accessible_asset_ids))
     return list(db.scalars(statement))
 
 
-def get_asset_price_or_404(db: Session, price_id: uuid.UUID) -> AssetPrice:
+def get_asset_price_or_404(
+    db: Session,
+    price_id: uuid.UUID,
+    *,
+    current_user: User | None = None,
+) -> AssetPrice:
     statement = (
         select(AssetPrice)
         .where(AssetPrice.id == price_id)
@@ -30,6 +51,13 @@ def get_asset_price_or_404(db: Session, price_id: uuid.UUID) -> AssetPrice:
     price = db.scalar(statement)
     if price is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset price not found.")
+    if current_user is not None:
+        accessible_asset_ids = get_accessible_asset_ids(db, current_user=current_user)
+        if accessible_asset_ids is not None and price.asset_id not in set(accessible_asset_ids):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this asset price.",
+            )
     return price
 
 

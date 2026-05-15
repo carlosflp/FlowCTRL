@@ -75,7 +75,7 @@ export const reportDatasetConfig: Record<ReportDatasetKey, ReportDatasetConfig> 
     dataset: "portfolios",
     label: "Carteiras",
     supportsDateRange: false,
-    supportsPortfolioScope: false,
+    supportsPortfolioScope: true,
     columns: [
       { key: "name", label: "Nome" },
       { key: "base_currency", label: "Moeda base" },

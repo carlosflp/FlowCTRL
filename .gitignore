@@ -23,3 +23,4 @@ apps/frontend/.next/
 apps/frontend/node_modules/
 postgres_data/
 minio_data/
+*.tsbuildinfo

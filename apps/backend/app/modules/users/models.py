@@ -5,9 +5,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import UserRole
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.modules.users.access import user_portfolio_access_table
 
 if TYPE_CHECKING:
     from app.modules.audit.models import AuditLog
+    from app.modules.portfolios.models import Portfolio
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -25,3 +27,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="user")
+    accessible_portfolios: Mapped[list["Portfolio"]] = relationship(
+        secondary=user_portfolio_access_table,
+        back_populates="authorized_users",
+        order_by="Portfolio.name",
+    )

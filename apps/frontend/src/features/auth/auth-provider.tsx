@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStoredAccessToken(response.access_token);
       setUser(response.user);
       queryClient.clear();
-      router.replace("/dashboard");
+      router.replace("/portfolios");
     },
     [queryClient, router],
   );

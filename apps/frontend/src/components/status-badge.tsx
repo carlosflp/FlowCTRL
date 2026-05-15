@@ -8,6 +8,9 @@ type StatusBadgeProps = {
 const statusStyles: Record<string, string> = {
   active: "bg-[#dcfce7] text-[#166534]",
   inactive: "bg-[#f3f4f6] text-[#4b5563]",
+  created: "bg-[#dcfce7] text-[#166534]",
+  updated: "bg-[#dbeafe] text-[#1d4ed8]",
+  deleted: "bg-[#fee2e2] text-[#b91c1c]",
   draft: "bg-[#e5e7eb] text-[#374151]",
   pending_approval: "bg-[#fef3c7] text-[#92400e]",
   queued: "bg-[#fef3c7] text-[#92400e]",

@@ -2,6 +2,14 @@ import { z } from "zod";
 
 export const userRoleSchema = z.enum(["admin", "manager", "analyst", "viewer"]);
 
+export const portfolioScopeSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  base_currency: z.string(),
+  benchmark: z.string().nullable(),
+  is_active: z.boolean(),
+});
+
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string(),
@@ -9,8 +17,31 @@ export const userSchema = z.object({
   is_active: z.boolean(),
   is_superuser: z.boolean(),
   role: userRoleSchema,
+  accessible_portfolios: z.array(portfolioScopeSchema),
   created_at: z.string(),
   updated_at: z.string(),
+});
+
+export const auditActorSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string(),
+  full_name: z.string(),
+  role: userRoleSchema,
+});
+
+const auditValueSchema = z.union([z.record(z.unknown()), z.array(z.unknown())]);
+
+export const auditLogSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid().nullable(),
+  entity_type: z.string(),
+  entity_id: z.string(),
+  action: z.enum(["created", "updated", "deleted"]),
+  old_value_json: auditValueSchema.nullable(),
+  new_value_json: auditValueSchema.nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  user: auditActorSchema.nullable(),
 });
 
 export const portfolioSchema = z.object({
@@ -160,6 +191,7 @@ export const reportExecutionParametersSchema = z.object({
   date_from: z.string().nullable(),
   date_to: z.string().nullable(),
   columns: z.array(z.string()).nullable(),
+  allowed_portfolio_ids: z.array(z.string().uuid()).nullable().optional(),
 });
 
 export const reportExecutionSchema = z.object({
@@ -196,6 +228,7 @@ export const actionResponseSchema = z.object({
   detail: z.string(),
 });
 
+export const auditLogListSchema = z.array(auditLogSchema);
 export const userListSchema = z.array(userSchema);
 export const portfolioListSchema = z.array(portfolioSchema);
 export const assetListSchema = z.array(assetSchema);

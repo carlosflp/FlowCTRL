@@ -8,6 +8,7 @@ import {
   ClipboardList,
   DollarSign,
   FileSpreadsheet,
+  History,
   LayoutGrid,
   LogOut,
   PieChart,
@@ -18,6 +19,8 @@ import {
 
 import { useAuth } from "@/features/auth/auth-provider";
 import { cn } from "@/lib/utils";
+
+import { usePortfolioScope } from "./portfolio-scope-provider";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
@@ -33,10 +36,15 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { activePortfolio, hasAccessiblePortfolios } = usePortfolioScope();
   const isProfileRoute = pathname === "/profile";
   const navigationItems =
     user?.role === "admin"
-      ? [...navigation, { href: "/users", label: "Usuarios", icon: ShieldCheck }]
+      ? [
+          ...navigation,
+          { href: "/audit", label: "Auditoria", icon: History },
+          { href: "/users", label: "Usuarios", icon: ShieldCheck },
+        ]
       : navigation;
 
   return (
@@ -49,6 +57,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="mt-2 max-w-xs text-sm leading-6 text-muted">
               Operational control for portfolios, assets, cash events, pricing and reporting workflows.
             </p>
+
+            <div className="mt-5 rounded-xl border border-border bg-[#f7f7f4] px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Carteira ativa
+              </div>
+              <div className="mt-2 text-sm font-semibold text-ink">
+                {activePortfolio?.name ?? "Nenhuma carteira selecionada"}
+              </div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                {activePortfolio
+                  ? `${activePortfolio.base_currency}${activePortfolio.benchmark ? ` | ${activePortfolio.benchmark}` : ""}`
+                  : hasAccessiblePortfolios
+                    ? "Escolha uma carteira para filtrar o restante da plataforma."
+                    : "Nenhuma carteira disponivel para este usuario no momento."}
+              </div>
+              <Link
+                href="/portfolios"
+                className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs font-medium text-ink transition hover:bg-[#f0efeb]"
+              >
+                <BriefcaseBusiness className="h-4 w-4" />
+                <span>{activePortfolio ? "Trocar carteira" : "Escolher carteira"}</span>
+              </Link>
+            </div>
           </div>
 
           <nav className="flex-1 px-4 py-5">
@@ -105,9 +136,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="border-b border-border bg-surface px-5 py-4 lg:hidden">
-            <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold">FlowCTRL</div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-lg font-semibold">FlowCTRL</div>
+                <div className="text-xs text-muted">
+                  {activePortfolio?.name ?? "Selecione uma carteira"}
+                </div>
+              </div>
               <div className="flex items-center gap-2">
+                <Link
+                  href="/portfolios"
+                  className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink"
+                >
+                  <BriefcaseBusiness className="h-4 w-4" />
+                  <span>Carteiras</span>
+                </Link>
                 <Link
                   href="/profile"
                   className={cn(

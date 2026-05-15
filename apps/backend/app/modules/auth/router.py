@@ -20,6 +20,7 @@ from app.modules.auth.service import (
     update_authenticated_user_profile,
 )
 from app.modules.users.schemas import UserRead
+from app.modules.users.service import build_user_read
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -38,12 +39,15 @@ def auth_status() -> AuthStatusResponse:
 @router.post("/login", response_model=AccessTokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AccessTokenResponse:
     user = authenticate_user(db, email=payload.email, password=payload.password)
-    return build_login_response(user)
+    return build_login_response(db, user)
 
 
 @router.get("/me", response_model=UserRead)
-def read_authenticated_user(current_user: CurrentUser) -> UserRead:
-    return UserRead.model_validate(current_user)
+def read_authenticated_user(
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> UserRead:
+    return build_user_read(db, current_user)
 
 
 @router.put("/me", response_model=UserRead)

@@ -7,8 +7,9 @@ import { useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePortfolioScope } from "@/components/portfolio-scope-provider";
 import { SearchToolbar } from "@/components/search-toolbar";
-import { fetchPortfolios, fetchPositionOverview, fetchPositions } from "@/lib/api/entities";
+import { fetchPositionOverview, fetchPositions } from "@/lib/api/entities";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 
 import { positionColumns } from "./columns";
@@ -21,34 +22,28 @@ function getTodayDateString(): string {
 
 export function PositionList() {
   const [query, setQuery] = useState("");
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState("");
   const [asOfDate, setAsOfDate] = useState(getTodayDateString());
+  const { activePortfolio, activePortfolioId } = usePortfolioScope();
 
-  const portfoliosQuery = useQuery({
-    queryKey: ["positions", "portfolios"],
-    queryFn: fetchPortfolios,
-  });
   const positionsQuery = useQuery({
-    queryKey: ["positions", "list", selectedPortfolioId, asOfDate],
+    queryKey: ["positions", "list", activePortfolioId, asOfDate],
     queryFn: () =>
       fetchPositions({
-        portfolioId: selectedPortfolioId || null,
+        portfolioId: activePortfolioId,
         asOfDate,
       }),
   });
   const overviewQuery = useQuery({
-    queryKey: ["positions", "overview", selectedPortfolioId, asOfDate],
+    queryKey: ["positions", "overview", activePortfolioId, asOfDate],
     queryFn: () =>
       fetchPositionOverview({
-        portfolioId: selectedPortfolioId || null,
+        portfolioId: activePortfolioId,
         asOfDate,
       }),
   });
 
-  const loading =
-    portfoliosQuery.isLoading || positionsQuery.isLoading || overviewQuery.isLoading;
-  const hasError =
-    portfoliosQuery.isError || positionsQuery.isError || overviewQuery.isError;
+  const loading = positionsQuery.isLoading || overviewQuery.isLoading;
+  const hasError = positionsQuery.isError || overviewQuery.isError;
 
   const filteredData = useMemo(() => {
     if (!positionsQuery.data) {
@@ -73,12 +68,15 @@ export function PositionList() {
     <section className="space-y-8">
       <PageHeader
         title="Posicoes"
-        description="Consolidacao inicial por carteira e ativo com base em operacoes aprovadas ou liquidadas e marcacao pelos ultimos precos disponiveis."
+        description={
+          activePortfolio
+            ? `Consolidacao de posicoes aberta para ${activePortfolio.name}, com base nas operacoes aprovadas ou liquidadas e nos ultimos precos disponiveis.`
+            : "Consolidacao de posicoes da carteira selecionada."
+        }
         actions={
           <button
             type="button"
             onClick={() => {
-              void portfoliosQuery.refetch();
               void positionsQuery.refetch();
               void overviewQuery.refetch();
             }}
@@ -118,24 +116,12 @@ export function PositionList() {
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-5 shadow-panel">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr]">
           <div>
-            <label className="mb-2 block text-sm font-medium text-ink" htmlFor="positions-portfolio-filter">
-              Carteira
-            </label>
-            <select
-              id="positions-portfolio-filter"
-              value={selectedPortfolioId}
-              onChange={(event) => setSelectedPortfolioId(event.target.value)}
-              className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-ink outline-none transition focus:border-accent"
-            >
-              <option value="">Todas as carteiras</option>
-              {(portfoliosQuery.data ?? []).map((portfolio) => (
-                <option key={portfolio.id} value={portfolio.id}>
-                  {portfolio.name}
-                </option>
-              ))}
-            </select>
+            <div className="mb-2 block text-sm font-medium text-ink">Carteira ativa</div>
+            <div className="rounded-lg border border-border bg-[#f7f7f4] px-4 py-3 text-sm text-ink">
+              {activePortfolio?.name ?? "Nenhuma carteira selecionada"}
+            </div>
           </div>
 
           <div>
@@ -167,17 +153,17 @@ export function PositionList() {
       <SearchToolbar placeholder="Buscar por carteira, ticker, ativo ou tipo" onSearch={setQuery} />
 
       {loading ? (
-        <EmptyState title="Carregando posicoes" description="Consolidando operacoes e precos por carteira." />
+        <EmptyState title="Carregando posicoes" description="Consolidando operacoes e precos da carteira ativa." />
       ) : hasError ? (
         <EmptyState
           title="Nao foi possivel carregar as posicoes"
-          description="Confira se o backend esta disponivel e se ja existem operacoes e precos cadastrados."
+          description="Confira se o backend esta disponivel e se a carteira ativa continua acessivel."
         />
       ) : (
         <DataTable
           columns={positionColumns}
           data={filteredData}
-          emptyMessage="Nenhuma posicao aberta encontrada para os filtros informados."
+          emptyMessage="Nenhuma posicao aberta encontrada para a carteira ativa."
         />
       )}
     </section>

@@ -4,12 +4,14 @@ import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import Settings
 from app.core.enums import AuditAction, UserRole
 from app.core.security import get_password_hash
 from app.modules.audit.service import create_audit_log
+from app.modules.portfolios.schemas import PortfolioScopeRead
+from app.modules.portfolios.service import list_portfolios, replace_user_portfolio_access
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserRead, UserUpdate
 
@@ -24,19 +26,42 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 
 def list_users(db: Session) -> list[User]:
-    statement = select(User).order_by(User.created_at.desc(), User.email.asc())
+    statement = (
+        select(User)
+        .options(selectinload(User.accessible_portfolios))
+        .order_by(User.created_at.desc(), User.email.asc())
+    )
     return list(db.scalars(statement))
 
 
 def get_user_or_404(db: Session, user_id: uuid.UUID) -> User:
-    user = db.get(User, user_id)
+    statement = select(User).options(selectinload(User.accessible_portfolios)).where(User.id == user_id)
+    user = db.scalar(statement)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return user
 
 
-def _serialize_user_for_audit(user: User) -> dict:
-    return UserRead.model_validate(user).model_dump(mode="json")
+def build_user_read(db: Session, user: User) -> UserRead:
+    accessible_portfolios = [
+        PortfolioScopeRead.model_validate(portfolio)
+        for portfolio in list_portfolios(db, current_user=user)
+    ]
+    return UserRead(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        role=user.role,
+        accessible_portfolios=accessible_portfolios,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
+
+
+def _serialize_user_for_audit(db: Session, user: User) -> dict:
+    return build_user_read(db, user).model_dump(mode="json")
 
 
 def _ensure_unique_email(
@@ -91,6 +116,7 @@ def create_user(
     role: UserRole,
     is_active: bool = True,
     is_superuser: bool = False,
+    portfolio_ids: list[uuid.UUID] | None = None,
 ) -> User:
     user = User(
         email=normalize_email(email),
@@ -101,6 +127,9 @@ def create_user(
         is_superuser=is_superuser or role == UserRole.ADMIN,
     )
     db.add(user)
+    db.flush()
+    if role != UserRole.ADMIN and not (is_superuser or role == UserRole.ADMIN):
+        replace_user_portfolio_access(db, user=user, portfolio_ids=portfolio_ids or [])
     db.commit()
     db.refresh(user)
     return user
@@ -128,16 +157,18 @@ def create_user_from_payload(
     )
     db.add(user)
     db.flush()
+    if role != UserRole.ADMIN and not is_superuser:
+        replace_user_portfolio_access(db, user=user, portfolio_ids=payload.portfolio_ids)
     create_audit_log(
         db,
         entity_type="user",
         entity_id=str(user.id),
         action=AuditAction.CREATED,
-        new_value=_serialize_user_for_audit(user),
+        new_value=_serialize_user_for_audit(db, user),
         user_id=actor_user.id,
     )
     db.commit()
-    db.refresh(user)
+    user = get_user_or_404(db, user.id)
     return user
 
 
@@ -153,7 +184,7 @@ def update_user(
     if not updates:
         return user
 
-    old_value = _serialize_user_for_audit(user)
+    old_value = _serialize_user_for_audit(db, user)
     new_email = user.email
     if "email" in updates and updates["email"] is not None:
         new_email = _ensure_unique_email(db, email=updates["email"], ignore_user_id=user.id)
@@ -197,6 +228,14 @@ def update_user(
     user.role = new_role
     user.is_superuser = new_is_superuser
     user.is_active = new_is_active
+    if "portfolio_ids" in updates:
+        portfolio_ids = updates["portfolio_ids"] or []
+        if _is_effective_admin(role=new_role, is_superuser=new_is_superuser, is_active=new_is_active):
+            replace_user_portfolio_access(db, user=user, portfolio_ids=[])
+        else:
+            replace_user_portfolio_access(db, user=user, portfolio_ids=portfolio_ids)
+    elif _is_effective_admin(role=new_role, is_superuser=new_is_superuser, is_active=new_is_active):
+        replace_user_portfolio_access(db, user=user, portfolio_ids=[])
 
     db.add(user)
     db.flush()
@@ -206,12 +245,11 @@ def update_user(
         entity_id=str(user.id),
         action=AuditAction.UPDATED,
         old_value=old_value,
-        new_value=_serialize_user_for_audit(user),
+        new_value=_serialize_user_for_audit(db, user),
         user_id=actor_user.id,
     )
     db.commit()
-    db.refresh(user)
-    return user
+    return get_user_or_404(db, user.id)
 
 
 def ensure_admin_user(db: Session, settings: Settings) -> User:

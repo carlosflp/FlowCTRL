@@ -48,6 +48,7 @@ def build_report_artifact(
         db,
         dataset=dataset,
         portfolio_id=execution.portfolio_id,
+        allowed_portfolio_ids=parameters.allowed_portfolio_ids,
         date_from=parameters.date_from,
         date_to=parameters.date_to,
         selected_columns=columns,
@@ -72,6 +73,7 @@ def build_dataset_rows(
     *,
     dataset: ReportDatasetType,
     portfolio_id,
+    allowed_portfolio_ids,
     date_from: date | None,
     date_to: date | None,
     selected_columns: list[str],
@@ -80,6 +82,7 @@ def build_dataset_rows(
         return build_operations_rows(
             db,
             portfolio_id=portfolio_id,
+            allowed_portfolio_ids=allowed_portfolio_ids,
             date_from=date_from,
             date_to=date_to,
             selected_columns=selected_columns,
@@ -88,6 +91,7 @@ def build_dataset_rows(
         return build_cashflow_rows(
             db,
             portfolio_id=portfolio_id,
+            allowed_portfolio_ids=allowed_portfolio_ids,
             date_from=date_from,
             date_to=date_to,
             selected_columns=selected_columns,
@@ -99,13 +103,19 @@ def build_dataset_rows(
             date_to=date_to,
             selected_columns=selected_columns,
         )
-    return build_portfolios_rows(db, selected_columns=selected_columns)
+    return build_portfolios_rows(
+        db,
+        portfolio_id=portfolio_id,
+        allowed_portfolio_ids=allowed_portfolio_ids,
+        selected_columns=selected_columns,
+    )
 
 
 def build_operations_rows(
     db: Session,
     *,
     portfolio_id,
+    allowed_portfolio_ids,
     date_from: date | None,
     date_to: date | None,
     selected_columns: list[str],
@@ -117,6 +127,8 @@ def build_operations_rows(
     )
     if portfolio_id is not None:
         statement = statement.where(Operation.portfolio_id == portfolio_id)
+    elif allowed_portfolio_ids:
+        statement = statement.where(Operation.portfolio_id.in_(allowed_portfolio_ids))
     if date_from is not None:
         statement = statement.where(Operation.trade_date >= date_from)
     if date_to is not None:
@@ -149,6 +161,7 @@ def build_cashflow_rows(
     db: Session,
     *,
     portfolio_id,
+    allowed_portfolio_ids,
     date_from: date | None,
     date_to: date | None,
     selected_columns: list[str],
@@ -160,6 +173,8 @@ def build_cashflow_rows(
     )
     if portfolio_id is not None:
         statement = statement.where(CashflowEntry.portfolio_id == portfolio_id)
+    elif allowed_portfolio_ids:
+        statement = statement.where(CashflowEntry.portfolio_id.in_(allowed_portfolio_ids))
     if date_from is not None:
         statement = statement.where(CashflowEntry.settlement_date >= date_from)
     if date_to is not None:
@@ -218,9 +233,15 @@ def build_pricing_rows(
 def build_portfolios_rows(
     db: Session,
     *,
+    portfolio_id,
+    allowed_portfolio_ids,
     selected_columns: list[str],
 ) -> tuple[list[str], list[dict[str, object]]]:
     statement = select(Portfolio).order_by(Portfolio.name.asc())
+    if portfolio_id is not None:
+        statement = statement.where(Portfolio.id == portfolio_id)
+    elif allowed_portfolio_ids:
+        statement = statement.where(Portfolio.id.in_(allowed_portfolio_ids))
     rows = []
     for portfolio in db.scalars(statement):
         rows.append(

@@ -2,6 +2,9 @@ import type { z } from "zod";
 
 import {
   actionResponseSchema,
+  auditActorSchema,
+  auditLogListSchema,
+  auditLogSchema,
   assetListSchema,
   assetPriceListSchema,
   assetPriceSchema,
@@ -15,6 +18,7 @@ import {
   positionOverviewSchema,
   positionSchema,
   portfolioListSchema,
+  portfolioScopeSchema,
   portfolioSchema,
   reportExecutionParametersSchema,
   reportExecutionListSchema,
@@ -29,7 +33,11 @@ import {
 export type User = z.infer<typeof userSchema>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserList = z.infer<typeof userListSchema>;
+export type AuditActor = z.infer<typeof auditActorSchema>;
+export type AuditLog = z.infer<typeof auditLogSchema>;
+export type AuditLogList = z.infer<typeof auditLogListSchema>;
 export type ActionResponse = z.infer<typeof actionResponseSchema>;
+export type PortfolioScope = z.infer<typeof portfolioScopeSchema>;
 export type Portfolio = z.infer<typeof portfolioSchema>;
 export type PortfolioList = z.infer<typeof portfolioListSchema>;
 export type Asset = z.infer<typeof assetSchema>;

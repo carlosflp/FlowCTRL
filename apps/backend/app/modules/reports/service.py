@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.enums import (
@@ -18,6 +18,11 @@ from app.core.enums import (
 from app.db.utils import model_to_dict
 from app.modules.audit.service import create_audit_log
 from app.modules.portfolios.models import Portfolio
+from app.modules.portfolios.service import (
+    ensure_user_has_portfolio_access,
+    get_accessible_portfolio_ids,
+    user_has_global_portfolio_access,
+)
 from app.modules.reports.definitions import (
     HIDDEN_TEMPLATE_CONFIG_KEY,
     get_report_dataset_definition,
@@ -35,6 +40,7 @@ from app.modules.reports.schemas import (
     ReportTemplateUpdate,
 )
 from app.modules.reports.storage import download_report_content, upload_report_content
+from app.modules.users.models import User
 
 
 @dataclass(frozen=True)
@@ -181,7 +187,12 @@ def update_report_template(
     return get_report_template_or_404(db, template.id)
 
 
-def list_report_executions(db: Session) -> list[ReportExecution]:
+def list_report_executions(
+    db: Session,
+    *,
+    current_user: User,
+    portfolio_id: uuid.UUID | None = None,
+) -> list[ReportExecution]:
     statement = (
         select(ReportExecution)
         .options(
@@ -190,10 +201,29 @@ def list_report_executions(db: Session) -> list[ReportExecution]:
         )
         .order_by(ReportExecution.created_at.desc())
     )
+    if portfolio_id is not None:
+        ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=portfolio_id)
+        statement = statement.where(ReportExecution.portfolio_id == portfolio_id)
+    elif not user_has_global_portfolio_access(current_user):
+        accessible_portfolio_ids = get_accessible_portfolio_ids(db, current_user)
+        if accessible_portfolio_ids:
+            statement = statement.where(
+                or_(
+                    ReportExecution.portfolio_id.is_(None),
+                    ReportExecution.portfolio_id.in_(accessible_portfolio_ids),
+                )
+            )
+        else:
+            statement = statement.where(ReportExecution.portfolio_id.is_(None))
     return list(db.scalars(statement))
 
 
-def get_report_execution_or_404(db: Session, execution_id: uuid.UUID) -> ReportExecution:
+def get_report_execution_or_404(
+    db: Session,
+    execution_id: uuid.UUID,
+    *,
+    current_user: User | None = None,
+) -> ReportExecution:
     statement = (
         select(ReportExecution)
         .where(ReportExecution.id == execution_id)
@@ -208,6 +238,12 @@ def get_report_execution_or_404(db: Session, execution_id: uuid.UUID) -> ReportE
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Report execution not found.",
         )
+    if current_user is not None and execution.portfolio_id is not None:
+        ensure_user_has_portfolio_access(
+            db,
+            current_user=current_user,
+            portfolio_id=execution.portfolio_id,
+        )
     return execution
 
 
@@ -215,6 +251,7 @@ def create_report_execution(
     db: Session,
     payload: ReportExecutionCreate,
     *,
+    current_user: User,
     actor_user_id: uuid.UUID | None = None,
 ) -> ReportExecution:
     template = get_report_template_or_404(db, payload.template_id)
@@ -229,19 +266,31 @@ def create_report_execution(
     definition = get_report_dataset_definition(dataset)
     validate_report_execution_parameters(dataset, parameters)
 
+    allowed_portfolio_ids = (
+        None
+        if user_has_global_portfolio_access(current_user)
+        else get_accessible_portfolio_ids(db, current_user)
+    )
     if payload.portfolio_id is not None:
         if not definition.supports_portfolio_scope:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Portfolio scope is not supported for the {dataset.value} dataset.",
             )
-        ensure_portfolio_exists(db, payload.portfolio_id)
+        ensure_user_has_portfolio_access(
+            db,
+            current_user=current_user,
+            portfolio_id=payload.portfolio_id,
+        )
 
     file_type = (payload.file_type or template.template_type).value
     execution = ReportExecution(
         template_id=payload.template_id,
         portfolio_id=payload.portfolio_id,
-        parameters_json=serialize_report_execution_parameters(parameters),
+        parameters_json=serialize_report_execution_parameters(
+            parameters,
+            allowed_portfolio_ids=allowed_portfolio_ids,
+        ),
         status=ReportExecutionStatus.QUEUED,
         file_type=file_type,
     )
@@ -270,7 +319,7 @@ def create_report_execution(
             detail="Failed to queue the report execution.",
         ) from exc
 
-    return get_report_execution_or_404(db, execution.id)
+    return get_report_execution_or_404(db, execution.id, current_user=current_user)
 
 
 def queue_report_execution(execution_id: uuid.UUID) -> None:
@@ -328,8 +377,10 @@ def process_report_execution_in_session(db: Session, execution_id: uuid.UUID) ->
 def get_report_download_payload(
     db: Session,
     execution_id: uuid.UUID,
+    *,
+    current_user: User,
 ) -> tuple[str, str, bytes]:
-    execution = get_report_execution_or_404(db, execution_id)
+    execution = get_report_execution_or_404(db, execution_id, current_user=current_user)
     if (
         execution.status != ReportExecutionStatus.COMPLETED
         or not execution.file_path
@@ -564,10 +615,17 @@ def validate_report_execution_parameters(
 
 def serialize_report_execution_parameters(
     parameters: ReportExecutionParameters | None,
+    *,
+    allowed_portfolio_ids: list[uuid.UUID] | None = None,
 ) -> dict | None:
     if parameters is None:
-        return None
+        if not allowed_portfolio_ids:
+            return None
+        return {"allowed_portfolio_ids": [str(portfolio_id) for portfolio_id in allowed_portfolio_ids]}
+
     serialized = parameters.model_dump(mode="json", exclude_none=True)
+    if allowed_portfolio_ids:
+        serialized["allowed_portfolio_ids"] = [str(portfolio_id) for portfolio_id in allowed_portfolio_ids]
     return serialized or None
 
 

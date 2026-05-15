@@ -69,6 +69,7 @@ class ReportExecutionParameters(BaseModel):
     date_from: date | None = None
     date_to: date | None = None
     columns: list[str] | None = None
+    allowed_portfolio_ids: list[uuid.UUID] | None = None
 
     @model_validator(mode="after")
     def validate_parameters(self) -> "ReportExecutionParameters":
@@ -91,6 +92,16 @@ class ReportExecutionParameters(BaseModel):
                 raise ValueError("columns must contain at least one value when provided.")
 
             self.columns = normalized_columns
+
+        if self.allowed_portfolio_ids is not None:
+            normalized_portfolio_ids: list[uuid.UUID] = []
+            seen_portfolio_ids: set[uuid.UUID] = set()
+            for portfolio_id in self.allowed_portfolio_ids:
+                if portfolio_id in seen_portfolio_ids:
+                    continue
+                normalized_portfolio_ids.append(portfolio_id)
+                seen_portfolio_ids.add(portfolio_id)
+            self.allowed_portfolio_ids = normalized_portfolio_ids or None
 
         return self
 

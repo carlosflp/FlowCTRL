@@ -20,7 +20,12 @@ def read_positions(
     portfolio_id: uuid.UUID | None = Query(default=None),
 ) -> list[PositionRead]:
     try:
-        return list_positions(db, as_of_date=as_of_date, portfolio_id=portfolio_id)
+        return list_positions(
+            db,
+            current_user=current_user,
+            as_of_date=as_of_date,
+            portfolio_id=portfolio_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
@@ -33,6 +38,11 @@ def read_position_overview(
     portfolio_id: uuid.UUID | None = Query(default=None),
 ) -> PositionOverview:
     try:
-        return get_position_overview(db, as_of_date=as_of_date, portfolio_id=portfolio_id)
+        return get_position_overview(
+            db,
+            current_user=current_user,
+            as_of_date=as_of_date,
+            portfolio_id=portfolio_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

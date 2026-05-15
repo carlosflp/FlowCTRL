@@ -112,6 +112,11 @@ DEMO_USERS = (
         "password": "ManagerDemo123!",
         "role": UserRole.MANAGER,
         "is_active": True,
+        "portfolio_names": [
+            f"{DEMO_PREFIX}Alpha Liquidez",
+            f"{DEMO_PREFIX}Beta Credito",
+            f"{DEMO_PREFIX}Gamma Acoes",
+        ],
     },
     {
         "email": "analyst.demo@flowctrl.local",
@@ -119,6 +124,10 @@ DEMO_USERS = (
         "password": "AnalystDemo123!",
         "role": UserRole.ANALYST,
         "is_active": True,
+        "portfolio_names": [
+            f"{DEMO_PREFIX}Alpha Liquidez",
+            f"{DEMO_PREFIX}Gamma Acoes",
+        ],
     },
     {
         "email": "viewer.ops.demo@flowctrl.local",
@@ -126,6 +135,9 @@ DEMO_USERS = (
         "password": "ViewerOps123!",
         "role": UserRole.VIEWER,
         "is_active": True,
+        "portfolio_names": [
+            f"{DEMO_PREFIX}Alpha Liquidez",
+        ],
     },
     {
         "email": "viewer.inactive.demo@flowctrl.local",
@@ -133,6 +145,9 @@ DEMO_USERS = (
         "password": "ViewerInactive123!",
         "role": UserRole.VIEWER,
         "is_active": False,
+        "portfolio_names": [
+            f"{DEMO_PREFIX}Beta Credito",
+        ],
     },
 )
 
@@ -598,12 +613,22 @@ DEMO_REPORT_EXECUTIONS = (
 )
 
 
-def upsert_user(db: Session, admin_user: User, payload_data: dict[str, object]) -> User:
+def upsert_user(
+    db: Session,
+    admin_user: User,
+    payload_data: dict[str, object],
+    *,
+    portfolio_name_to_id: dict[str, uuid.UUID],
+) -> User:
     email = str(payload_data["email"])
     existing = get_user_by_email(db, email)
     role = payload_data["role"]
     is_active = bool(payload_data["is_active"])
     is_superuser = role == UserRole.ADMIN
+    portfolio_ids = [
+        portfolio_name_to_id[portfolio_name]
+        for portfolio_name in payload_data.get("portfolio_names", [])
+    ]
 
     if existing is None:
         payload = UserCreate(
@@ -613,6 +638,7 @@ def upsert_user(db: Session, admin_user: User, payload_data: dict[str, object]) 
             role=role,
             is_active=is_active,
             is_superuser=is_superuser,
+            portfolio_ids=portfolio_ids,
         )
         return create_user_from_payload(db, payload=payload, actor_user=admin_user)
 
@@ -623,6 +649,7 @@ def upsert_user(db: Session, admin_user: User, payload_data: dict[str, object]) 
         role=role,
         is_active=is_active,
         is_superuser=is_superuser,
+        portfolio_ids=portfolio_ids,
     )
     return update_user(
         db,
@@ -649,6 +676,7 @@ def upsert_asset(db: Session, payload_data: dict[str, object]) -> Asset:
 
 def upsert_operation(
     db: Session,
+    actor_user: User,
     seed: DemoOperationSeed,
     portfolio_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -669,17 +697,20 @@ def upsert_operation(
     )
 
     if existing is None:
-        return create_operation(db, payload)
+        return create_operation(db, payload, current_user=actor_user, actor_user_id=actor_user.id)
 
     return update_operation(
         db,
         existing,
         OperationUpdate(**payload.model_dump(exclude_none=True)),
+        current_user=actor_user,
+        actor_user_id=actor_user.id,
     )
 
 
 def upsert_cashflow_entry(
     db: Session,
+    actor_user: User,
     seed: DemoCashflowSeed,
     portfolio_id: uuid.UUID,
     operation_id: uuid.UUID | None,
@@ -697,17 +728,20 @@ def upsert_cashflow_entry(
     )
 
     if existing is None:
-        return create_cashflow_entry(db, payload)
+        return create_cashflow_entry(db, payload, current_user=actor_user, actor_user_id=actor_user.id)
 
     return update_cashflow_entry(
         db,
         existing,
         CashflowEntryUpdate(**payload.model_dump()),
+        current_user=actor_user,
+        actor_user_id=actor_user.id,
     )
 
 
 def upsert_asset_price(
     db: Session,
+    actor_user: User,
     seed: DemoPricingSeed,
     asset_id: uuid.UUID,
 ) -> AssetPrice:
@@ -729,12 +763,13 @@ def upsert_asset_price(
     )
 
     if existing is None:
-        return create_asset_price(db, payload)
+        return create_asset_price(db, payload, actor_user_id=actor_user.id)
 
     return update_asset_price(
         db,
         existing,
         AssetPriceUpdate(**payload.model_dump()),
+        actor_user_id=actor_user.id,
     )
 
 
@@ -756,6 +791,7 @@ def normalize_parameters(parameters: dict[str, object] | None) -> dict | None:
 def ensure_report_execution(
     db: Session,
     *,
+    actor_user: User,
     template: ReportTemplate,
     portfolio_id: uuid.UUID | None,
     file_type: str,
@@ -785,7 +821,12 @@ def ensure_report_execution(
         file_type=file_type,
         parameters_json=normalized_parameters,
     )
-    return create_report_execution(db, payload)
+    return create_report_execution(
+        db,
+        payload,
+        current_user=actor_user,
+        actor_user_id=actor_user.id,
+    )
 
 
 def wait_for_report_executions(db: Session, execution_ids: list[uuid.UUID]) -> dict[str, str]:
@@ -826,14 +867,37 @@ def main() -> None:
         default_viewer = ensure_default_user(db, settings)
         ensure_default_report_templates(db)
 
-        demo_users = {
-            str(user_data["email"]): upsert_user(db, admin_user, user_data)
-            for user_data in DEMO_USERS
-        }
-
         portfolios = {
             str(portfolio_data["name"]): upsert_portfolio(db, portfolio_data)
             for portfolio_data in DEMO_PORTFOLIOS
+        }
+        portfolio_name_to_id = {
+            portfolio_name: portfolio.id
+            for portfolio_name, portfolio in portfolios.items()
+        }
+
+        if default_viewer is not None and not default_viewer.is_superuser:
+            default_viewer = update_user(
+                db,
+                user=default_viewer,
+                payload=UserUpdate(
+                    portfolio_ids=[
+                        portfolio_name_to_id[f"{DEMO_PREFIX}Alpha Liquidez"],
+                        portfolio_name_to_id[f"{DEMO_PREFIX}Beta Credito"],
+                    ]
+                ),
+                actor_user=admin_user,
+                enforce_self_admin_protection=False,
+            )
+
+        demo_users = {
+            str(user_data["email"]): upsert_user(
+                db,
+                admin_user,
+                user_data,
+                portfolio_name_to_id=portfolio_name_to_id,
+            )
+            for user_data in DEMO_USERS
         }
         assets = {
             str(asset_data["ticker"]): upsert_asset(db, asset_data)
@@ -844,6 +908,7 @@ def main() -> None:
         for seed in DEMO_OPERATIONS:
             operations[seed.code] = upsert_operation(
                 db,
+                admin_user,
                 seed,
                 portfolio_id=portfolios[seed.portfolio].id,
                 asset_id=assets[seed.asset].id,
@@ -852,6 +917,7 @@ def main() -> None:
         cashflows = {
             seed.code: upsert_cashflow_entry(
                 db,
+                admin_user,
                 seed,
                 portfolio_id=portfolios[seed.portfolio].id,
                 operation_id=operations[seed.operation_code].id if seed.operation_code else None,
@@ -862,6 +928,7 @@ def main() -> None:
         prices = {
             f"{seed.asset}:{seed.price_date.isoformat()}:{seed.source}": upsert_asset_price(
                 db,
+                admin_user,
                 seed,
                 asset_id=assets[seed.asset].id,
             )
@@ -886,6 +953,7 @@ def main() -> None:
             portfolio_id = portfolios[portfolio_name].id if portfolio_name else None
             execution = ensure_report_execution(
                 db,
+                actor_user=admin_user,
                 template=template,
                 portfolio_id=portfolio_id,
                 file_type=str(execution_seed["file_type"]),
@@ -895,8 +963,8 @@ def main() -> None:
 
         report_statuses = wait_for_report_executions(db, execution_ids)
 
-        positions = list_positions(db)
-        position_overview = get_position_overview(db)
+        positions = list_positions(db, current_user=admin_user)
+        position_overview = get_position_overview(db, current_user=admin_user)
 
         summary = {
             "users": {

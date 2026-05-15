@@ -11,19 +11,42 @@ from app.modules.assets.models import Asset
 from app.modules.audit.service import create_audit_log
 from app.modules.operations.models import Operation
 from app.modules.operations.schemas import OperationCreate, OperationUpdate
-from app.modules.portfolios.models import Portfolio
+from app.modules.portfolios.service import (
+    ensure_user_has_portfolio_access,
+    get_accessible_portfolio_ids,
+    user_has_global_portfolio_access,
+)
+from app.modules.users.models import User
 
 
-def list_operations(db: Session) -> list[Operation]:
+def list_operations(
+    db: Session,
+    *,
+    current_user: User,
+    portfolio_id: uuid.UUID | None = None,
+) -> list[Operation]:
     statement = (
         select(Operation)
         .options(selectinload(Operation.portfolio), selectinload(Operation.asset))
         .order_by(Operation.trade_date.desc(), Operation.created_at.desc())
     )
+    if portfolio_id is not None:
+        ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=portfolio_id)
+        statement = statement.where(Operation.portfolio_id == portfolio_id)
+    elif not user_has_global_portfolio_access(current_user):
+        accessible_portfolio_ids = get_accessible_portfolio_ids(db, current_user)
+        if not accessible_portfolio_ids:
+            return []
+        statement = statement.where(Operation.portfolio_id.in_(accessible_portfolio_ids))
     return list(db.scalars(statement))
 
 
-def get_operation_or_404(db: Session, operation_id: uuid.UUID) -> Operation:
+def get_operation_or_404(
+    db: Session,
+    operation_id: uuid.UUID,
+    *,
+    current_user: User,
+) -> Operation:
     statement = (
         select(Operation)
         .where(Operation.id == operation_id)
@@ -32,12 +55,12 @@ def get_operation_or_404(db: Session, operation_id: uuid.UUID) -> Operation:
     operation = db.scalar(statement)
     if operation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operation not found.")
+    ensure_user_has_portfolio_access(
+        db,
+        current_user=current_user,
+        portfolio_id=operation.portfolio_id,
+    )
     return operation
-
-
-def _ensure_portfolio_exists(db: Session, portfolio_id: uuid.UUID) -> None:
-    if db.get(Portfolio, portfolio_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found.")
 
 
 def _ensure_asset_exists(db: Session, asset_id: uuid.UUID) -> None:
@@ -61,9 +84,10 @@ def create_operation(
     db: Session,
     payload: OperationCreate,
     *,
+    current_user: User,
     actor_user_id: uuid.UUID | None = None,
 ) -> Operation:
-    _ensure_portfolio_exists(db, payload.portfolio_id)
+    ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=payload.portfolio_id)
     _ensure_asset_exists(db, payload.asset_id)
 
     gross_value = payload.gross_value or _calculate_gross_value(
@@ -89,7 +113,7 @@ def create_operation(
         user_id=actor_user_id,
     )
     db.commit()
-    return get_operation_or_404(db, operation.id)
+    return get_operation_or_404(db, operation.id, current_user=current_user)
 
 
 def update_operation(
@@ -97,6 +121,7 @@ def update_operation(
     operation: Operation,
     payload: OperationUpdate,
     *,
+    current_user: User,
     actor_user_id: uuid.UUID | None = None,
 ) -> Operation:
     old_value = _serialize_operation(operation)
@@ -104,7 +129,7 @@ def update_operation(
 
     new_portfolio_id = updates.get("portfolio_id", operation.portfolio_id)
     new_asset_id = updates.get("asset_id", operation.asset_id)
-    _ensure_portfolio_exists(db, new_portfolio_id)
+    ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=new_portfolio_id)
     _ensure_asset_exists(db, new_asset_id)
 
     for field, value in updates.items():
@@ -143,15 +168,21 @@ def update_operation(
         user_id=actor_user_id,
     )
     db.commit()
-    return get_operation_or_404(db, operation.id)
+    return get_operation_or_404(db, operation.id, current_user=current_user)
 
 
 def delete_operation(
     db: Session,
     operation: Operation,
     *,
+    current_user: User,
     actor_user_id: uuid.UUID | None = None,
 ) -> None:
+    ensure_user_has_portfolio_access(
+        db,
+        current_user=current_user,
+        portfolio_id=operation.portfolio_id,
+    )
     old_value = _serialize_operation(operation)
     create_audit_log(
         db,

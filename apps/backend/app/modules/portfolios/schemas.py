@@ -31,3 +31,12 @@ class PortfolioRead(PortfolioBase):
     created_at: datetime
     updated_at: datetime
 
+
+class PortfolioScopeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    base_currency: str
+    benchmark: str | None
+    is_active: bool

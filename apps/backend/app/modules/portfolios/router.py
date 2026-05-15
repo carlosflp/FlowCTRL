@@ -9,6 +9,7 @@ from app.modules.portfolios.schemas import PortfolioCreate, PortfolioRead, Portf
 from app.modules.portfolios.service import (
     create_portfolio,
     delete_portfolio,
+    ensure_user_has_portfolio_access,
     get_portfolio_or_404,
     list_portfolios,
     update_portfolio,
@@ -22,7 +23,7 @@ def read_portfolios(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> list[PortfolioRead]:
-    return list_portfolios(db)
+    return list_portfolios(db, current_user=current_user)
 
 
 @router.post("", response_model=PortfolioRead, status_code=status.HTTP_201_CREATED)
@@ -40,7 +41,7 @@ def read_portfolio(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> PortfolioRead:
-    return get_portfolio_or_404(db, portfolio_id)
+    return ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=portfolio_id)
 
 
 @router.put("/{portfolio_id}", response_model=PortfolioRead)
@@ -50,7 +51,7 @@ def update_portfolio_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> PortfolioRead:
-    portfolio = get_portfolio_or_404(db, portfolio_id)
+    portfolio = ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=portfolio_id)
     return update_portfolio(db, portfolio, payload)
 
 
@@ -60,6 +61,6 @@ def delete_portfolio_endpoint(
     current_user: DeleteAccessUser,
     db: Session = Depends(get_db),
 ) -> Response:
-    portfolio = get_portfolio_or_404(db, portfolio_id)
+    portfolio = ensure_user_has_portfolio_access(db, current_user=current_user, portfolio_id=portfolio_id)
     delete_portfolio(db, portfolio)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

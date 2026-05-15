@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePortfolioScope } from "@/components/portfolio-scope-provider";
 import { SearchToolbar } from "@/components/search-toolbar";
 import { fetchCashflowEntries } from "@/lib/api/entities";
 
@@ -13,9 +14,10 @@ import { cashflowColumns } from "./columns";
 
 export function CashflowList() {
   const [query, setQuery] = useState("");
+  const { activePortfolio, activePortfolioId } = usePortfolioScope();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["cashflow"],
-    queryFn: fetchCashflowEntries,
+    queryKey: ["cashflow", activePortfolioId],
+    queryFn: () => fetchCashflowEntries({ portfolioId: activePortfolioId }),
   });
 
   const filteredData = useMemo(() => {
@@ -41,20 +43,24 @@ export function CashflowList() {
     <section>
       <PageHeader
         title="Caixa"
-        description="Movimentos de caixa por carteira para acompanhar entradas, saidas, ajustes e conciliacao operacional."
+        description={
+          activePortfolio
+            ? `Movimentos de caixa filtrados pela carteira ativa ${activePortfolio.name}.`
+            : "Movimentos de caixa da carteira selecionada."
+        }
       />
 
       <SearchToolbar placeholder="Buscar por carteira, descricao, tipo ou status" onSearch={setQuery} />
 
       {isLoading ? (
-        <EmptyState title="Carregando caixa" description="Consultando os eventos de caixa disponiveis." />
+        <EmptyState title="Carregando caixa" description="Consultando os eventos de caixa da carteira ativa." />
       ) : isError ? (
         <EmptyState
           title="Nao foi possivel carregar o caixa"
-          description="Confira se a API esta disponivel e se as migrations ja foram aplicadas."
+          description="Confira se a API esta disponivel e se a carteira selecionada continua acessivel."
         />
       ) : (
-        <DataTable columns={cashflowColumns} data={filteredData} emptyMessage="Nenhum evento de caixa encontrado." />
+        <DataTable columns={cashflowColumns} data={filteredData} emptyMessage="Nenhum evento de caixa encontrado para a carteira ativa." />
       )}
     </section>
   );

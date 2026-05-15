@@ -6,7 +6,7 @@ from app.core.security import create_access_token, verify_password
 from app.modules.auth.schemas import AccessTokenResponse
 from app.modules.users.models import User
 from app.modules.users.schemas import UserRead, UserUpdate
-from app.modules.users.service import get_user_by_email, update_user
+from app.modules.users.service import build_user_read, get_user_by_email, update_user
 
 
 def authenticate_user(db: Session, *, email: str, password: str) -> User:
@@ -24,14 +24,14 @@ def authenticate_user(db: Session, *, email: str, password: str) -> User:
     return user
 
 
-def build_login_response(user: User) -> AccessTokenResponse:
+def build_login_response(db: Session, user: User) -> AccessTokenResponse:
     settings = get_settings()
     token = create_access_token(subject=str(user.id), email=user.email, role=user.role.value)
     return AccessTokenResponse(
         access_token=token,
         token_type="bearer",
         expires_in=settings.access_token_expire_minutes * 60,
-        user=UserRead.model_validate(user),
+        user=build_user_read(db, user),
     )
 
 

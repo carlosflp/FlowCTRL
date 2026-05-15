@@ -13,6 +13,7 @@ import {
 
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePortfolioScope } from "@/components/portfolio-scope-provider";
 import { StatusBadge } from "@/components/status-badge";
 import {
   fetchAssetPrices,
@@ -20,69 +21,78 @@ import {
   fetchCashflowEntries,
   fetchOperations,
   fetchPositionOverview,
-  fetchPortfolios,
 } from "@/lib/api/entities";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 
 const summaryCards = [
   {
     key: "portfolios",
-    label: "Carteiras",
+    label: "Carteira ativa",
     icon: BriefcaseBusiness,
-    description: "Estrategias sob gestao com base operacional inicial.",
+    description: "Escopo operacional em uso nesta sessao.",
   },
   {
     key: "assets",
     label: "Ativos",
     icon: Landmark,
-    description: "Instrumentos cadastrados para negociacao e precificacao.",
+    description: "Instrumentos associados a carteira selecionada.",
   },
   {
     key: "operations",
     label: "Operacoes",
     icon: ClipboardList,
-    description: "Transacoes registradas com trilha basica de auditoria.",
+    description: "Transacoes registradas dentro do escopo ativo.",
   },
   {
     key: "cashflow",
     label: "Caixa",
     icon: Wallet,
-    description: "Entradas, saidas e ajustes para acompanhar liquidacao.",
+    description: "Eventos de caixa da carteira atualmente selecionada.",
   },
   {
     key: "pricing",
     label: "Precos",
     icon: DollarSign,
-    description: "Precos historicos para validacao e mark-to-market futuro.",
+    description: "Base de precificacao relevante para a carteira ativa.",
   },
   {
     key: "positions",
     label: "Posicoes",
     icon: PieChart,
-    description: "Posicoes abertas com consolidacao inicial por carteira e ativo.",
+    description: "Posicoes abertas consolidadas para a carteira em uso.",
   },
 ] as const;
 
 export function DashboardOverview() {
-  const portfoliosQuery = useQuery({ queryKey: ["dashboard", "portfolios"], queryFn: fetchPortfolios });
-  const assetsQuery = useQuery({ queryKey: ["dashboard", "assets"], queryFn: fetchAssets });
-  const operationsQuery = useQuery({ queryKey: ["dashboard", "operations"], queryFn: fetchOperations });
-  const cashflowQuery = useQuery({ queryKey: ["dashboard", "cashflow"], queryFn: fetchCashflowEntries });
-  const pricingQuery = useQuery({ queryKey: ["dashboard", "pricing"], queryFn: fetchAssetPrices });
+  const { activePortfolio, activePortfolioId } = usePortfolioScope();
+  const assetsQuery = useQuery({
+    queryKey: ["dashboard", "assets", activePortfolioId],
+    queryFn: () => fetchAssets({ portfolioId: activePortfolioId }),
+  });
+  const operationsQuery = useQuery({
+    queryKey: ["dashboard", "operations", activePortfolioId],
+    queryFn: () => fetchOperations({ portfolioId: activePortfolioId }),
+  });
+  const cashflowQuery = useQuery({
+    queryKey: ["dashboard", "cashflow", activePortfolioId],
+    queryFn: () => fetchCashflowEntries({ portfolioId: activePortfolioId }),
+  });
+  const pricingQuery = useQuery({
+    queryKey: ["dashboard", "pricing", activePortfolioId],
+    queryFn: () => fetchAssetPrices({ portfolioId: activePortfolioId }),
+  });
   const positionsOverviewQuery = useQuery({
-    queryKey: ["dashboard", "positions", "overview"],
-    queryFn: () => fetchPositionOverview(),
+    queryKey: ["dashboard", "positions", "overview", activePortfolioId],
+    queryFn: () => fetchPositionOverview({ portfolioId: activePortfolioId }),
   });
 
   const loading =
-    portfoliosQuery.isLoading ||
     assetsQuery.isLoading ||
     operationsQuery.isLoading ||
     cashflowQuery.isLoading ||
     pricingQuery.isLoading ||
     positionsOverviewQuery.isLoading;
   const hasError =
-    portfoliosQuery.isError ||
     assetsQuery.isError ||
     operationsQuery.isError ||
     cashflowQuery.isError ||
@@ -92,7 +102,7 @@ export function DashboardOverview() {
   const recentCashflow = cashflowQuery.data?.slice(0, 4) ?? [];
 
   const metrics = {
-    portfolios: portfoliosQuery.data?.length ?? 0,
+    portfolios: activePortfolio ? 1 : 0,
     assets: assetsQuery.data?.length ?? 0,
     operations: operationsQuery.data?.length ?? 0,
     cashflow: cashflowQuery.data?.length ?? 0,
@@ -104,15 +114,19 @@ export function DashboardOverview() {
     <section className="space-y-8">
       <PageHeader
         title="Dashboard"
-        description="Visao executiva inicial do estado operacional da plataforma, com espaco para posicao, caixa, precificacao e monitoramento de processos."
+        description={
+          activePortfolio
+            ? `Visao executiva da carteira ativa ${activePortfolio.name}, reunindo atividade operacional, caixa, precificacao e consolidacao de posicoes.`
+            : "Visao executiva da carteira selecionada."
+        }
       />
 
       {loading ? (
-        <EmptyState title="Carregando visao geral" description="Consultando dados da base operacional." />
+        <EmptyState title="Carregando visao geral" description="Consultando os dados da carteira ativa." />
       ) : hasError ? (
         <EmptyState
           title="Dashboard indisponivel"
-          description="Os servicos ainda nao responderam como esperado. Suba o backend e execute as migrations antes de usar o painel."
+          description="Os servicos ainda nao responderam como esperado para a carteira selecionada."
         />
       ) : (
         <>
@@ -143,7 +157,7 @@ export function DashboardOverview() {
                 <div>
                   <h2 className="text-lg font-semibold text-ink">Posicao consolidada</h2>
                   <p className="mt-1 text-sm text-muted">
-                    Snapshot inicial baseado em operacoes aprovadas ou liquidadas e nos ultimos precos disponiveis.
+                    Snapshot baseado em operacoes aprovadas ou liquidadas e nos ultimos precos disponiveis da carteira ativa.
                   </p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted" />
@@ -181,7 +195,7 @@ export function DashboardOverview() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-ink">Operacoes recentes</h2>
-                  <p className="mt-1 text-sm text-muted">Ultimos registros lancados na base.</p>
+                  <p className="mt-1 text-sm text-muted">Ultimos registros da carteira ativa.</p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted" />
               </div>
@@ -189,7 +203,7 @@ export function DashboardOverview() {
               {recentOperations.length === 0 ? (
                 <EmptyState
                   title="Sem operacoes registradas"
-                  description="Quando as primeiras operacoes forem cadastradas, elas aparecerao aqui para acompanhamento rapido."
+                  description="Quando a carteira ativa receber operacoes, elas aparecerao aqui."
                 />
               ) : (
                 <div className="space-y-3">
@@ -220,7 +234,7 @@ export function DashboardOverview() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-ink">Caixa recente</h2>
-                  <p className="mt-1 text-sm text-muted">Movimentos mais recentes por carteira.</p>
+                  <p className="mt-1 text-sm text-muted">Movimentos mais recentes da carteira ativa.</p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted" />
               </div>
@@ -228,7 +242,7 @@ export function DashboardOverview() {
               {recentCashflow.length === 0 ? (
                 <EmptyState
                   title="Sem movimentos de caixa"
-                  description="Os eventos de caixa passarao a aparecer aqui assim que forem registrados."
+                  description="Os eventos de caixa da carteira ativa passarao a aparecer aqui assim que forem registrados."
                 />
               ) : (
                 <div className="space-y-3">

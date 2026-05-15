@@ -84,6 +84,12 @@ Cobertura atual de atribuicao do ator autenticado:
 
 Essa trilha ainda e intencionalmente simples, mas ja cria base para governanca, revisao interna e compliance operacional.
 
+Expansao aplicada nesta etapa:
+
+- administradores agora podem consultar a trilha por tela dedicada e endpoint read-only
+- a exploracao pode ser filtrada por `entity_type`, `action`, `user_id`, periodo e busca textual
+- a resposta da API agora inclui resumo do ator autenticado para facilitar leitura operacional no frontend
+
 ## Regras iniciais de usuarios e perfis
 
 O modulo administrativo de usuarios entrou com foco em governanca operacional basica.
@@ -95,6 +101,9 @@ Regras aplicadas:
 - o ambiente local pode bootstrapar um usuario nao-admin opcional para validacao da experiencia restrita
 - email deve ser unico
 - `role=admin` implica privilegio administrativo efetivo
+- usuarios nao-admin passam a operar apenas dentro das carteiras explicitamente atribuidas
+- administradores continuam com acesso global a todas as carteiras
+- a atribuicao de carteiras agora faz parte do fluxo de criacao e edicao de usuarios
 - a plataforma impede a remocao do ultimo admin ativo
 - a tela administrativa protege o usuario autenticado contra perda acidental do proprio acesso
 
@@ -171,6 +180,18 @@ Nesta etapa, os relatorios passaram a operar com as seguintes regras:
 - quando nenhuma coluna customizada e enviada, a exportacao usa o conjunto padrao completo do dataset
 - o template especial de `Relatorio Personalizado` pode sobrescrever o dataset na execucao
 - sobrescrita de dataset nao e permitida em templates comuns
+
+## Escopo ativo por carteira
+
+Foi introduzido um escopo global de carteira para a navegacao autenticada.
+
+Regras aplicadas:
+
+- depois do login, o usuario entra primeiro na tela de selecao de carteiras acessiveis
+- a carteira escolhida passa a ser a carteira ativa da sessao
+- `dashboard`, `assets`, `operations`, `cashflow`, `pricing`, `positions` e `reports` passam a ler dados dentro desse escopo
+- a troca de carteira pode ser feita a qualquer momento pela entrada `Carteiras` no menu lateral
+- se o usuario perder acesso a carteira ativa, a selecao local e descartada e ele volta ao fluxo de escolha
 
 Proximas expansoes naturais:
 

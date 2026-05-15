@@ -5,6 +5,18 @@ from app.modules.users.service import ensure_bootstrap_user
 
 
 def test_admin_can_create_user(client: TestClient, admin_auth_headers: dict[str, str]) -> None:
+    portfolio = client.post(
+        "/api/v1/portfolios",
+        json={
+            "name": "User Scope Alpha",
+            "description": "Carteira para teste de escopo de usuario.",
+            "base_currency": "BRL",
+            "benchmark": "CDI",
+            "is_active": True,
+        },
+        headers=admin_auth_headers,
+    ).json()
+
     response = client.post(
         "/api/v1/users",
         json={
@@ -14,6 +26,7 @@ def test_admin_can_create_user(client: TestClient, admin_auth_headers: dict[str,
             "role": "analyst",
             "is_active": True,
             "is_superuser": False,
+            "portfolio_ids": [portfolio["id"]],
         },
         headers=admin_auth_headers,
     )
@@ -24,12 +37,25 @@ def test_admin_can_create_user(client: TestClient, admin_auth_headers: dict[str,
     assert data["role"] == "analyst"
     assert data["is_active"] is True
     assert data["is_superuser"] is False
+    assert [item["id"] for item in data["accessible_portfolios"]] == [portfolio["id"]]
 
 
 def test_admin_can_update_user_role_and_status(
     client: TestClient,
     admin_auth_headers: dict[str, str],
 ) -> None:
+    portfolio = client.post(
+        "/api/v1/portfolios",
+        json={
+            "name": "User Scope Beta",
+            "description": "Carteira para update de usuario.",
+            "base_currency": "BRL",
+            "benchmark": "CDI",
+            "is_active": True,
+        },
+        headers=admin_auth_headers,
+    ).json()
+
     create_response = client.post(
         "/api/v1/users",
         json={
@@ -39,6 +65,7 @@ def test_admin_can_update_user_role_and_status(
             "role": "viewer",
             "is_active": True,
             "is_superuser": False,
+            "portfolio_ids": [],
         },
         headers=admin_auth_headers,
     )
@@ -49,6 +76,7 @@ def test_admin_can_update_user_role_and_status(
         json={
             "role": "manager",
             "is_active": False,
+            "portfolio_ids": [portfolio["id"]],
         },
         headers=admin_auth_headers,
     )
@@ -57,6 +85,7 @@ def test_admin_can_update_user_role_and_status(
     data = response.json()
     assert data["role"] == "manager"
     assert data["is_active"] is False
+    assert [item["id"] for item in data["accessible_portfolios"]] == [portfolio["id"]]
 
 
 def test_viewer_cannot_access_user_management(

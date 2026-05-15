@@ -13,8 +13,8 @@ import { PageHeader } from "@/components/page-header";
 import { SearchToolbar } from "@/components/search-toolbar";
 import { useAuth } from "@/features/auth/auth-provider";
 import { ApiError } from "@/lib/api/client";
-import { createUser, fetchUsers, updateUser } from "@/lib/api/entities";
-import type { User } from "@/types/domain";
+import { createUser, fetchPortfolios, fetchUsers, updateUser } from "@/lib/api/entities";
+import type { Portfolio, User } from "@/types/domain";
 
 import { getUserColumns } from "./columns";
 
@@ -26,6 +26,7 @@ const createUserSchema = z.object({
   password: z.string().min(8),
   role: z.enum(roleOptions),
   is_active: z.boolean(),
+  portfolio_ids: z.array(z.string().uuid()),
 });
 
 const updateUserSchema = z.object({
@@ -38,6 +39,7 @@ const updateUserSchema = z.object({
     .transform((value) => (value ? value : undefined)),
   role: z.enum(roleOptions),
   is_active: z.boolean(),
+  portfolio_ids: z.array(z.string().uuid()),
 });
 
 type CreateUserValues = z.infer<typeof createUserSchema>;
@@ -48,6 +50,77 @@ function getErrorMessage(error: unknown): string {
     return error.detail ?? "Nao foi possivel concluir a operacao.";
   }
   return "Nao foi possivel concluir a operacao.";
+}
+
+function PortfolioAccessPanel(props: {
+  portfolios: Portfolio[];
+  selectedIds: string[];
+  isAdminRole: boolean;
+  disabled?: boolean;
+  title: string;
+  description: string;
+  onToggle: (portfolioId: string) => void;
+}) {
+  if (props.isAdminRole) {
+    return (
+      <div className="rounded-lg border border-border bg-[#f7f7f4] px-4 py-4 text-sm text-muted">
+        <div className="font-medium text-ink">{props.title}</div>
+        <p className="mt-1 leading-6">
+          Perfis `admin` recebem acesso global e nao precisam de atribuicao manual de carteiras.
+        </p>
+      </div>
+    );
+  }
+
+  if (props.portfolios.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-[#f7f7f4] px-4 py-4 text-sm text-muted">
+        <div className="font-medium text-ink">{props.title}</div>
+        <p className="mt-1 leading-6">
+          Nenhuma carteira foi cadastrada ainda. Crie carteiras primeiro para conseguir atribuir escopo aos usuarios.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-border bg-[#fafaf8] px-4 py-4">
+      <div>
+        <div className="text-sm font-medium text-ink">{props.title}</div>
+        <p className="mt-1 text-sm leading-6 text-muted">{props.description}</p>
+      </div>
+      <div className="grid gap-2">
+        {props.portfolios.map((portfolio) => {
+          const checked = props.selectedIds.includes(portfolio.id);
+
+          return (
+            <label
+              key={portfolio.id}
+              className="flex items-center gap-3 rounded-lg border border-border bg-white px-3 py-3 text-sm text-ink"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={props.disabled}
+                onChange={() => props.onToggle(portfolio.id)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="flex-1">
+                {portfolio.name}
+                <span className="ml-2 text-xs text-muted">
+                  {portfolio.base_currency}
+                  {portfolio.benchmark ? ` | ${portfolio.benchmark}` : ""}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <div className="text-xs text-muted">
+        {props.selectedIds.length} carteira(s) atribuida(s) para este usuario.
+      </div>
+    </div>
+  );
 }
 
 export function UserAdmin() {
@@ -63,6 +136,11 @@ export function UserAdmin() {
     queryFn: fetchUsers,
     enabled: currentUser?.role === "admin",
   });
+  const portfoliosQuery = useQuery({
+    queryKey: ["users", "portfolios"],
+    queryFn: fetchPortfolios,
+    enabled: currentUser?.role === "admin",
+  });
 
   const createForm = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
@@ -72,6 +150,7 @@ export function UserAdmin() {
       password: "",
       role: "viewer",
       is_active: true,
+      portfolio_ids: [],
     },
   });
   const updateForm = useForm<UpdateUserValues>({
@@ -82,8 +161,15 @@ export function UserAdmin() {
       password: undefined,
       role: "viewer",
       is_active: true,
+      portfolio_ids: [],
     },
   });
+
+  const availablePortfolios = portfoliosQuery.data ?? [];
+  const createRole = createForm.watch("role");
+  const createPortfolioIds = createForm.watch("portfolio_ids");
+  const updateRole = updateForm.watch("role");
+  const updatePortfolioIds = updateForm.watch("portfolio_ids");
 
   const selectedUser = useMemo(
     () => usersQuery.data?.find((item) => item.id === selectedUserId) ?? null,
@@ -115,6 +201,18 @@ export function UserAdmin() {
   }, [selectedUserId, usersQuery.data]);
 
   useEffect(() => {
+    if (createRole === "admin" && createForm.getValues("portfolio_ids").length > 0) {
+      createForm.setValue("portfolio_ids", [], { shouldDirty: true });
+    }
+  }, [createForm, createRole]);
+
+  useEffect(() => {
+    if (updateRole === "admin" && updateForm.getValues("portfolio_ids").length > 0) {
+      updateForm.setValue("portfolio_ids", [], { shouldDirty: true });
+    }
+  }, [updateForm, updateRole]);
+
+  useEffect(() => {
     if (!selectedUser) {
       updateForm.reset({
         full_name: "",
@@ -122,6 +220,7 @@ export function UserAdmin() {
         password: undefined,
         role: "viewer",
         is_active: true,
+        portfolio_ids: [],
       });
       return;
     }
@@ -132,6 +231,7 @@ export function UserAdmin() {
       password: undefined,
       role: selectedUser.role,
       is_active: selectedUser.is_active,
+      portfolio_ids: selectedUser.accessible_portfolios.map((portfolio) => portfolio.id),
     });
   }, [selectedUser, updateForm]);
 
@@ -146,6 +246,7 @@ export function UserAdmin() {
         password: "",
         role: "viewer",
         is_active: true,
+        portfolio_ids: [],
       });
       setSelectedUserId(createdUser.id);
       await queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -178,12 +279,28 @@ export function UserAdmin() {
     admins: usersQuery.data?.filter((item) => item.role === "admin").length ?? 0,
   };
 
+  function toggleCreatePortfolio(portfolioId: string) {
+    const currentIds = createForm.getValues("portfolio_ids");
+    const nextIds = currentIds.includes(portfolioId)
+      ? currentIds.filter((id) => id !== portfolioId)
+      : [...currentIds, portfolioId];
+    createForm.setValue("portfolio_ids", nextIds, { shouldDirty: true });
+  }
+
+  function toggleUpdatePortfolio(portfolioId: string) {
+    const currentIds = updateForm.getValues("portfolio_ids");
+    const nextIds = currentIds.includes(portfolioId)
+      ? currentIds.filter((id) => id !== portfolioId)
+      : [...currentIds, portfolioId];
+    updateForm.setValue("portfolio_ids", nextIds, { shouldDirty: true });
+  }
+
   if (currentUser?.role !== "admin") {
     return (
       <section className="space-y-8">
         <PageHeader
           title="Usuarios"
-          description="Administracao de acesso interno, perfis operacionais e status de conta."
+          description="Administracao de acesso interno, perfis operacionais e escopo por carteira."
         />
         <EmptyState
           title="Acesso restrito"
@@ -197,7 +314,7 @@ export function UserAdmin() {
     <section className="space-y-8">
       <PageHeader
         title="Usuarios"
-        description="Gestao administrativa de contas internas, perfis de acesso e ativacao de usuarios da plataforma."
+        description="Gestao administrativa de contas internas, perfis de acesso, ativacao de usuarios e atribuicao de carteiras."
       />
 
       <div className="grid gap-4 xl:grid-cols-4">
@@ -263,7 +380,7 @@ export function UserAdmin() {
               </div>
               <div>
                 <div className="text-base font-semibold text-ink">Novo usuario</div>
-                <div className="text-sm text-muted">Crie contas internas com perfil inicial definido.</div>
+                <div className="text-sm text-muted">Crie contas internas com perfil inicial e escopo de carteiras.</div>
               </div>
             </div>
 
@@ -274,6 +391,7 @@ export function UserAdmin() {
                 await createUserMutation.mutateAsync({
                   ...values,
                   is_superuser: values.role === "admin",
+                  portfolio_ids: values.role === "admin" ? [] : values.portfolio_ids,
                 });
               })}
             >
@@ -330,6 +448,15 @@ export function UserAdmin() {
                 <span>Usuario ativo desde a criacao</span>
               </label>
 
+              <PortfolioAccessPanel
+                portfolios={availablePortfolios}
+                selectedIds={createPortfolioIds}
+                isAdminRole={createRole === "admin"}
+                title="Carteiras liberadas"
+                description="Escolha as carteiras que esse usuario vai poder consultar e operar depois do login."
+                onToggle={toggleCreatePortfolio}
+              />
+
               <button
                 type="submit"
                 disabled={createUserMutation.isPending}
@@ -348,7 +475,7 @@ export function UserAdmin() {
               </div>
               <div>
                 <div className="text-base font-semibold text-ink">Edicao administrativa</div>
-                <div className="text-sm text-muted">Revise perfil, email, senha e status do usuario selecionado.</div>
+                <div className="text-sm text-muted">Revise perfil, email, senha, status e carteiras do usuario selecionado.</div>
               </div>
             </div>
 
@@ -377,6 +504,7 @@ export function UserAdmin() {
                       role: values.role,
                       is_active: values.is_active,
                       is_superuser: values.role === "admin",
+                      portfolio_ids: values.role === "admin" ? [] : values.portfolio_ids,
                     },
                   });
                 })}
@@ -443,6 +571,16 @@ export function UserAdmin() {
                   />
                   <span>Usuario ativo</span>
                 </label>
+
+                <PortfolioAccessPanel
+                  portfolios={availablePortfolios}
+                  selectedIds={updatePortfolioIds}
+                  isAdminRole={updateRole === "admin"}
+                  disabled={isSelectedCurrentUser}
+                  title="Carteiras liberadas"
+                  description="Atualize quais carteiras esse usuario pode abrir e usar no restante da plataforma."
+                  onToggle={toggleUpdatePortfolio}
+                />
 
                 {isSelectedCurrentUser ? (
                   <div className="rounded-lg border border-[#fde68a] bg-[#fffbeb] px-3 py-3 text-sm text-[#92400e]">

@@ -20,9 +20,10 @@ router = APIRouter(prefix="/assets", tags=["assets"])
 @router.get("", response_model=list[AssetRead])
 def read_assets(
     current_user: ReadAccessUser,
+    portfolio_id: uuid.UUID | None = None,
     db: Session = Depends(get_db),
 ) -> list[AssetRead]:
-    return list_assets(db)
+    return list_assets(db, current_user=current_user, portfolio_id=portfolio_id)
 
 
 @router.post("", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
@@ -40,7 +41,7 @@ def read_asset(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> AssetRead:
-    return get_asset_or_404(db, asset_id)
+    return get_asset_or_404(db, asset_id, current_user=current_user)
 
 
 @router.put("/{asset_id}", response_model=AssetRead)

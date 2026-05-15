@@ -59,7 +59,7 @@ REPORT_DATASET_DEFINITIONS: dict[ReportDatasetType, ReportDatasetDefinition] = {
     ReportDatasetType.PORTFOLIOS: ReportDatasetDefinition(
         columns=("name", "base_currency", "benchmark", "is_active", "description"),
         date_field=None,
-        supports_portfolio_scope=False,
+        supports_portfolio_scope=True,
     ),
 }
 

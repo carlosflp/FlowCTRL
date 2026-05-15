@@ -15,11 +15,11 @@ import { useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { usePortfolioScope } from "@/components/portfolio-scope-provider";
 import { StatusBadge } from "@/components/status-badge";
 import {
   createReportExecution,
   downloadReportExecution,
-  fetchPortfolios,
   fetchReportExecutions,
   fetchReportTemplates,
 } from "@/lib/api/entities";
@@ -133,7 +133,6 @@ function ReportFormatSelect(props: {
 
 export function ReportsPage() {
   const queryClient = useQueryClient();
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [isScopeOpen, setIsScopeOpen] = useState(false);
@@ -147,14 +146,15 @@ export function ReportsPage() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackTone, setFeedbackTone] = useState<"error" | "success">("success");
   const [downloadingExecutionId, setDownloadingExecutionId] = useState<string | null>(null);
+  const { activePortfolio, activePortfolioId, refreshPortfolios } = usePortfolioScope();
 
   const templatesQuery = useQuery({
     queryKey: ["reports", "templates"],
     queryFn: fetchReportTemplates,
   });
   const executionsQuery = useQuery({
-    queryKey: ["reports", "executions"],
-    queryFn: fetchReportExecutions,
+    queryKey: ["reports", "executions", activePortfolioId],
+    queryFn: () => fetchReportExecutions({ portfolioId: activePortfolioId }),
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!Array.isArray(data)) {
@@ -164,10 +164,6 @@ export function ReportsPage() {
         ? 5000
         : false;
     },
-  });
-  const portfoliosQuery = useQuery({
-    queryKey: ["reports", "portfolios"],
-    queryFn: fetchPortfolios,
   });
 
   const runReportMutation = useMutation({
@@ -183,8 +179,8 @@ export function ReportsPage() {
     },
   });
 
-  const loading = templatesQuery.isLoading || executionsQuery.isLoading || portfoliosQuery.isLoading;
-  const hasError = templatesQuery.isError || executionsQuery.isError || portfoliosQuery.isError;
+  const loading = templatesQuery.isLoading || executionsQuery.isLoading;
+  const hasError = templatesQuery.isError || executionsQuery.isError;
 
   const executionColumns = useMemo(
     () =>
@@ -207,14 +203,8 @@ export function ReportsPage() {
   );
 
   const selectedPortfolioLabel = useMemo(() => {
-    if (!selectedPortfolioId) {
-      return "Todas as carteiras";
-    }
-    return (
-      (portfoliosQuery.data ?? []).find((portfolio) => portfolio.id === selectedPortfolioId)?.name ??
-      "Carteira selecionada"
-    );
-  }, [portfoliosQuery.data, selectedPortfolioId]);
+    return activePortfolio?.name ?? "Carteira selecionada";
+  }, [activePortfolio]);
 
   const scopeSummary = useMemo(
     () => `${selectedPortfolioLabel} | ${formatDateRangeSummary(dateFrom, dateTo)}`,
@@ -332,7 +322,7 @@ export function ReportsPage() {
     setFeedbackMessage(null);
     runReportMutation.mutate({
       template_id: options.templateId,
-      portfolio_id: options.datasetConfig.supportsPortfolioScope ? selectedPortfolioId || null : null,
+      portfolio_id: options.datasetConfig.supportsPortfolioScope ? activePortfolioId ?? null : null,
       file_type: options.fileType,
       parameters_json: buildReportParameters(
         options.datasetConfig,
@@ -355,7 +345,7 @@ export function ReportsPage() {
             onClick={() => {
               void templatesQuery.refetch();
               void executionsQuery.refetch();
-              void portfoliosQuery.refetch();
+              void refreshPortfolios();
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink transition hover:bg-[#f0efeb]"
           >
@@ -391,22 +381,10 @@ export function ReportsPage() {
                 </p>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-ink" htmlFor="report-portfolio-filter">
-                  Carteira
-                </label>
-                <select
-                  id="report-portfolio-filter"
-                  value={selectedPortfolioId}
-                  onChange={(event) => setSelectedPortfolioId(event.target.value)}
-                  className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-ink outline-none transition focus:border-accent"
-                >
-                  <option value="">Todas as carteiras</option>
-                  {(portfoliosQuery.data ?? []).map((portfolio) => (
-                    <option key={portfolio.id} value={portfolio.id}>
-                      {portfolio.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="mb-2 block text-sm font-medium text-ink">Carteira ativa</label>
+                <div className="flex h-11 items-center rounded-lg border border-border bg-[#f7f7f4] px-3 text-sm text-ink">
+                  {selectedPortfolioLabel}
+                </div>
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-ink" htmlFor="report-date-from">

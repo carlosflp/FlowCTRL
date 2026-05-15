@@ -143,12 +143,27 @@ Some small structural adjustments were kept from the original proposal because t
 - report template changes and report execution requests now preserve the acting user for governance and traceability
 - backend tests now validate actor attribution directly against persisted `audit_logs`
 
+### Stage 11: administrative audit explorer
+
+- the backend now exposes an admin-only `GET /api/v1/audit` endpoint for recent audit log exploration
+- audit queries now support filtering by entity type, action, acting user, date range and free-text search
+- audit payloads now include the associated actor summary to avoid separate user lookups in the frontend
+- the frontend now exposes an `Auditoria` screen for admins with filters, event table and before/after JSON inspection
+
+### Stage 12: active portfolio workspace and scoped user access
+
+- users now receive explicit portfolio assignments unless they are `admin`
+- authenticated sessions now expose the accessible portfolio list as part of the user payload
+- the frontend now starts on a protected `Carteiras` selection flow before entering the rest of the platform
+- dashboard, assets, operations, cashflow, pricing, positions and report executions now consume the active portfolio scope
+- admins can assign or revise portfolio access directly from the user management screen
+
 ## Roles
 
 - `admin`: full access
-- `manager`: read, create, update and delete domain records
-- `analyst`: read, create and update domain records
-- `viewer`: read-only access
+- `manager`: read, create, update and delete domain records inside the portfolios assigned to the user
+- `analyst`: read, create and update domain records inside the portfolios assigned to the user
+- `viewer`: read-only access inside the portfolios assigned to the user
 
 ## Seeded admin
 
@@ -289,6 +304,10 @@ The demo seed is idempotent and now aligns report templates with the current mod
 - `GET /api/v1/users/{user_id}`
 - `PUT /api/v1/users/{user_id}`
 
+### Audit
+
+- `GET /api/v1/audit`
+
 ### Portfolios
 
 - `GET /api/v1/portfolios`
@@ -364,3 +383,4 @@ Validated in the current stage:
 3. Add CI for backend tests, frontend build and linting.
 4. Expand account security with password policy, reset flow and session expiration controls.
 5. Expand report templates with saved presets, reusable filter sets and governance approval flows.
+6. Add server-side pagination and export options for the audit explorer as the event volume grows.

@@ -12,6 +12,11 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.enums import AssetType, OperationStatus, OperationType
 from app.modules.operations.models import Operation
 from app.modules.portfolios.models import Portfolio
+from app.modules.portfolios.service import (
+    ensure_user_has_portfolio_access,
+    get_accessible_portfolio_ids,
+    user_has_global_portfolio_access,
+)
 from app.modules.positions.schemas import (
     PositionAssetSummary,
     PositionOverview,
@@ -19,6 +24,7 @@ from app.modules.positions.schemas import (
     PositionRead,
 )
 from app.modules.pricing.models import AssetPrice
+from app.modules.users.models import User
 
 MONEY_QUANTIZER = Decimal("0.0001")
 PERCENT_QUANTIZER = Decimal("0.00000001")
@@ -75,18 +81,23 @@ def _resolve_as_of_date(as_of_date: date | None) -> date:
 def _ensure_portfolio_exists_if_filtered(
     db: Session,
     *,
+    current_user: User,
     portfolio_id: uuid.UUID | None,
 ) -> None:
     if portfolio_id is None:
         return
-    if db.get(Portfolio, portfolio_id) is None:
-        raise ValueError("Portfolio not found.")
+    ensure_user_has_portfolio_access(
+        db,
+        current_user=current_user,
+        portfolio_id=portfolio_id,
+    )
 
 
 def _load_position_operations(
     db: Session,
     *,
     as_of_date: date,
+    accessible_portfolio_ids: list[uuid.UUID] | None,
     portfolio_id: uuid.UUID | None = None,
 ) -> list[Operation]:
     statement = (
@@ -101,6 +112,10 @@ def _load_position_operations(
 
     if portfolio_id is not None:
         statement = statement.where(Operation.portfolio_id == portfolio_id)
+    elif accessible_portfolio_ids is not None:
+        if not accessible_portfolio_ids:
+            return []
+        statement = statement.where(Operation.portfolio_id.in_(accessible_portfolio_ids))
 
     return list(db.scalars(statement))
 
@@ -254,15 +269,26 @@ def _build_position_rows(
 def list_positions(
     db: Session,
     *,
+    current_user: User,
     as_of_date: date | None = None,
     portfolio_id: uuid.UUID | None = None,
 ) -> list[PositionRead]:
     resolved_as_of_date = _resolve_as_of_date(as_of_date)
-    _ensure_portfolio_exists_if_filtered(db, portfolio_id=portfolio_id)
+    _ensure_portfolio_exists_if_filtered(
+        db,
+        current_user=current_user,
+        portfolio_id=portfolio_id,
+    )
+    accessible_portfolio_ids = (
+        None
+        if user_has_global_portfolio_access(current_user)
+        else get_accessible_portfolio_ids(db, current_user)
+    )
 
     operations = _load_position_operations(
         db,
         as_of_date=resolved_as_of_date,
+        accessible_portfolio_ids=accessible_portfolio_ids,
         portfolio_id=portfolio_id,
     )
     prices_by_asset = _load_latest_prices(
@@ -281,12 +307,14 @@ def list_positions(
 def get_position_overview(
     db: Session,
     *,
+    current_user: User,
     as_of_date: date | None = None,
     portfolio_id: uuid.UUID | None = None,
 ) -> PositionOverview:
     resolved_as_of_date = _resolve_as_of_date(as_of_date)
     positions = list_positions(
         db,
+        current_user=current_user,
         as_of_date=resolved_as_of_date,
         portfolio_id=portfolio_id,
     )

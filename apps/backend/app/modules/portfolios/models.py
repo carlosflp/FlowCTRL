@@ -4,11 +4,13 @@ from sqlalchemy import Boolean, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.modules.users.access import user_portfolio_access_table
 
 if TYPE_CHECKING:
     from app.modules.cashflow.models import CashflowEntry
     from app.modules.operations.models import Operation
     from app.modules.reports.models import ReportExecution
+    from app.modules.users.models import User
 
 
 class Portfolio(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -23,3 +25,7 @@ class Portfolio(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     operations: Mapped[list["Operation"]] = relationship(back_populates="portfolio")
     cashflow_entries: Mapped[list["CashflowEntry"]] = relationship(back_populates="portfolio")
     report_executions: Mapped[list["ReportExecution"]] = relationship(back_populates="portfolio")
+    authorized_users: Mapped[list["User"]] = relationship(
+        secondary=user_portfolio_access_table,
+        back_populates="accessible_portfolios",
+    )

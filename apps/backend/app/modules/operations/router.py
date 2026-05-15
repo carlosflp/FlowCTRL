@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -21,8 +21,9 @@ router = APIRouter(prefix="/operations", tags=["operations"])
 def read_operations(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
+    portfolio_id: uuid.UUID | None = Query(default=None),
 ) -> list[OperationRead]:
-    return list_operations(db)
+    return list_operations(db, current_user=current_user, portfolio_id=portfolio_id)
 
 
 @router.post("", response_model=OperationRead, status_code=status.HTTP_201_CREATED)
@@ -31,7 +32,7 @@ def create_operation_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> OperationRead:
-    return create_operation(db, payload, actor_user_id=current_user.id)
+    return create_operation(db, payload, current_user=current_user, actor_user_id=current_user.id)
 
 
 @router.get("/{operation_id}", response_model=OperationRead)
@@ -40,7 +41,7 @@ def read_operation(
     current_user: ReadAccessUser,
     db: Session = Depends(get_db),
 ) -> OperationRead:
-    return get_operation_or_404(db, operation_id)
+    return get_operation_or_404(db, operation_id, current_user=current_user)
 
 
 @router.put("/{operation_id}", response_model=OperationRead)
@@ -50,8 +51,14 @@ def update_operation_endpoint(
     current_user: WriteAccessUser,
     db: Session = Depends(get_db),
 ) -> OperationRead:
-    operation = get_operation_or_404(db, operation_id)
-    return update_operation(db, operation, payload, actor_user_id=current_user.id)
+    operation = get_operation_or_404(db, operation_id, current_user=current_user)
+    return update_operation(
+        db,
+        operation,
+        payload,
+        current_user=current_user,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.delete("/{operation_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -60,6 +67,6 @@ def delete_operation_endpoint(
     current_user: DeleteAccessUser,
     db: Session = Depends(get_db),
 ) -> Response:
-    operation = get_operation_or_404(db, operation_id)
-    delete_operation(db, operation, actor_user_id=current_user.id)
+    operation = get_operation_or_404(db, operation_id, current_user=current_user)
+    delete_operation(db, operation, current_user=current_user, actor_user_id=current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

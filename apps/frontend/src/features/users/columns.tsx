@@ -61,6 +61,30 @@ export function getUserColumns({
       ),
     },
     {
+      id: "portfolio_scope",
+      header: "Carteiras",
+      cell: ({ row }) => {
+        if (row.original.role === "admin") {
+          return <span className="text-sm font-medium text-ink">Todas</span>;
+        }
+
+        const portfolios = row.original.accessible_portfolios;
+        if (portfolios.length === 0) {
+          return <span className="text-sm text-muted">Nenhuma</span>;
+        }
+
+        const preview = portfolios.slice(0, 2).map((portfolio) => portfolio.name).join(", ");
+        const remaining = portfolios.length - 2;
+
+        return (
+          <div className="text-sm text-ink">
+            <div>{preview}</div>
+            {remaining > 0 ? <div className="text-xs text-muted">+{remaining} carteira(s)</div> : null}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "is_active",
       header: "Status",
       cell: ({ row }) => <StatusBadge value={row.original.is_active} />,
