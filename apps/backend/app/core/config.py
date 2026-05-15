@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field(default="minioadmin", alias="MINIO_SECRET_KEY")
     minio_bucket: str = Field(default="asset-platform-reports", alias="MINIO_BUCKET")
+    minio_imports_bucket: str = Field(default="asset-platform-imports", alias="MINIO_IMPORTS_BUCKET")
 
     backend_cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"],

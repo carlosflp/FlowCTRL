@@ -72,6 +72,34 @@ class ReportExecutionStatus(StrEnum):
     FAILED = "failed"
 
 
+class ImportDatasetType(StrEnum):
+    OPERATIONS = "operations"
+    CASHFLOW = "cashflow"
+    PRICING = "pricing"
+
+
+class ImportSourceType(StrEnum):
+    MANUAL_UPLOAD = "manual_upload"
+    ADMINISTRATOR_FILE = "administrator_file"
+    CUSTODIAN_STATEMENT = "custodian_statement"
+    BROKERAGE_NOTE = "brokerage_note"
+    POSITION_FILE = "position_file"
+    MOVEMENT_FILE = "movement_file"
+    CASH_FILE = "cash_file"
+    MARKET_REPORT = "market_report"
+    INTERNAL_REPORT = "internal_report"
+    API_INTEGRATION = "api_integration"
+    AUTOMATED_EVENT = "automated_event"
+
+
+class ImportJobStatus(StrEnum):
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    COMPLETED_WITH_ERRORS = "completed_with_errors"
+    FAILED = "failed"
+
+
 class AuditAction(StrEnum):
     CREATED = "created"
     UPDATED = "updated"

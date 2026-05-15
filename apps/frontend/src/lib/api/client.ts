@@ -56,6 +56,17 @@ function buildHeaders(options: RequestOptions): Headers {
   return headers;
 }
 
+function buildAuthHeaders(options: RequestOptions): Headers {
+  const headers = new Headers();
+  const token = options.token ?? getStoredAccessToken();
+
+  if (options.auth !== false && token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return headers;
+}
+
 async function parseResponse<T>(response: Response, schema: ZodType<T>): Promise<T> {
   const data = await response.json().catch(() => null);
 
@@ -133,6 +144,22 @@ export async function apiDelete(
         : null;
     throw new ApiError(`Request failed with status ${response.status}.`, response.status, detail);
   }
+}
+
+export async function apiUpload<T>(
+  path: string,
+  body: FormData,
+  schema: ZodType<T>,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: buildAuthHeaders(options),
+    body,
+    cache: "no-store",
+  });
+
+  return parseResponse(response, schema);
 }
 
 export async function apiDownload(

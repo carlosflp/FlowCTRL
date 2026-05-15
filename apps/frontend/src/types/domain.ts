@@ -9,6 +9,11 @@ import {
   assetPriceListSchema,
   assetPriceSchema,
   assetSchema,
+  importDatasetTypeSchema,
+  importJobListSchema,
+  importJobSchema,
+  importJobStatusSchema,
+  importSourceTypeSchema,
   authTokenSchema,
   cashflowEntryListSchema,
   cashflowEntrySchema,
@@ -37,6 +42,11 @@ export type AuditActor = z.infer<typeof auditActorSchema>;
 export type AuditLog = z.infer<typeof auditLogSchema>;
 export type AuditLogList = z.infer<typeof auditLogListSchema>;
 export type ActionResponse = z.infer<typeof actionResponseSchema>;
+export type ImportDatasetType = z.infer<typeof importDatasetTypeSchema>;
+export type ImportSourceType = z.infer<typeof importSourceTypeSchema>;
+export type ImportJobStatus = z.infer<typeof importJobStatusSchema>;
+export type ImportJob = z.infer<typeof importJobSchema>;
+export type ImportJobList = z.infer<typeof importJobListSchema>;
 export type PortfolioScope = z.infer<typeof portfolioScopeSchema>;
 export type Portfolio = z.infer<typeof portfolioSchema>;
 export type PortfolioList = z.infer<typeof portfolioListSchema>;

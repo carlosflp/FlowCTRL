@@ -18,6 +18,7 @@ The repository now includes:
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list and launch views, audit exploration and report execution
 - inline edit, cancellation and removal workflows for operations, cashflow and pricing
+- import job uploads with CSV/XLSX preview, batch history and asynchronous processing for operations, cashflow and pricing
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
 ## Technical adjustments adopted
@@ -173,6 +174,14 @@ Some small structural adjustments were kept from the original proposal because t
 - operations and cashflow now support quick cancellation from the list without leaving the active portfolio workspace
 - managers and admins can now remove operations, cashflow entries and prices from the same operational screens
 - successful maintenance actions refresh dashboard, positions, reports and scoped lists to keep the workspace consistent
+
+### Stage 15: import job foundation
+
+- the backend now exposes import job upload and history endpoints scoped by portfolio access
+- CSV and XLSX files can now be staged with row preview before background processing
+- import jobs now process operations, cashflow and pricing through the same domain services already used by the manual flows
+- job history now preserves source type, row counts, processing status and first-row error samples for operational follow-up
+- the frontend now exposes an `Importacoes` area with upload form, batch history and detail preview
 
 ## Roles
 
@@ -395,9 +404,9 @@ Validated in the current stage:
 
 ## Recommended next steps
 
-1. Expand position handling for corporate actions, transfers and richer valuation rules.
-2. Add quick operational detail drawers with before-and-after context from the audit trail.
-3. Add CI for backend tests, frontend build and linting.
-4. Expand account security with password policy, reset flow and session expiration controls.
-5. Expand report templates with saved presets, reusable filter sets and governance approval flows.
-6. Add server-side pagination and export options for the audit explorer as the event volume grows.
+1. Expand import jobs with explicit column mapping templates and per-row approval before final commit.
+2. Add source-specific adapters for brokerage notes, custodian statements, cash files and administrator exports.
+3. Add API-based ingestion connectors for brokers, administrators, custodians, internal systems and market-price providers.
+4. Introduce scheduled event generation for maturities, coupon payments, amortizations, dividends and settlement workflows.
+5. Expand position handling for corporate actions, derivatives and richer valuation rules.
+6. Add CI for backend tests, frontend build and linting.

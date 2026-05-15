@@ -13,6 +13,7 @@ import {
   LogOut,
   PieChart,
   ShieldCheck,
+  Upload,
   UserRound,
   Wallet,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const navigation = [
   { href: "/pricing", label: "Precos", icon: DollarSign },
   { href: "/positions", label: "Posicoes", icon: PieChart },
   { href: "/reports", label: "Relatorios", icon: FileSpreadsheet },
+  { href: "/imports", label: "Importacoes", icon: Upload },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

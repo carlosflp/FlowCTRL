@@ -29,6 +29,28 @@ export const auditActorSchema = z.object({
   role: userRoleSchema,
 });
 
+export const importDatasetTypeSchema = z.enum(["operations", "cashflow", "pricing"]);
+export const importSourceTypeSchema = z.enum([
+  "manual_upload",
+  "administrator_file",
+  "custodian_statement",
+  "brokerage_note",
+  "position_file",
+  "movement_file",
+  "cash_file",
+  "market_report",
+  "internal_report",
+  "api_integration",
+  "automated_event",
+]);
+export const importJobStatusSchema = z.enum([
+  "queued",
+  "processing",
+  "completed",
+  "completed_with_errors",
+  "failed",
+]);
+
 const auditValueSchema = z.union([z.record(z.unknown()), z.array(z.unknown())]);
 
 export const auditLogSchema = z.object({
@@ -137,6 +159,46 @@ export const assetPriceSchema = z.object({
   }),
 });
 
+export const importJobSchema = z.object({
+  id: z.string().uuid(),
+  portfolio_id: z.string().uuid(),
+  created_by_user_id: z.string().uuid().nullable(),
+  dataset: importDatasetTypeSchema,
+  source: importSourceTypeSchema,
+  status: importJobStatusSchema,
+  file_name: z.string(),
+  file_type: z.string(),
+  storage_path: z.string(),
+  preview_rows_json: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))).nullable(),
+  result_json: z
+    .object({
+      summary: z.string().nullable().optional(),
+      errors: z
+        .array(
+          z.object({
+            row_number: z.number(),
+            message: z.string(),
+            row_preview: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])),
+          }),
+        )
+        .optional(),
+    })
+    .nullable(),
+  total_rows: z.number(),
+  processed_rows: z.number(),
+  successful_rows: z.number(),
+  failed_rows: z.number(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  portfolio: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+  }),
+  created_by_user: auditActorSchema.nullable(),
+});
+
 export const positionSchema = z.object({
   as_of_date: z.string(),
   portfolio: z.object({
@@ -235,6 +297,7 @@ export const assetListSchema = z.array(assetSchema);
 export const operationListSchema = z.array(operationSchema);
 export const cashflowEntryListSchema = z.array(cashflowEntrySchema);
 export const assetPriceListSchema = z.array(assetPriceSchema);
+export const importJobListSchema = z.array(importJobSchema);
 export const positionListSchema = z.array(positionSchema);
 export const reportTemplateListSchema = z.array(reportTemplateSchema);
 export const reportExecutionListSchema = z.array(reportExecutionSchema);

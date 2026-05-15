@@ -222,6 +222,28 @@ Regras aplicadas:
 - exclusao continua restrita a perfis `admin` e `manager`, refletindo a mesma regra do backend
 - apos editar, cancelar ou excluir, a interface invalida as consultas dependentes para manter `dashboard`, `posicoes`, `pricing`, `cashflow`, `operations` e `reports` consistentes
 
+## Ingestao e importacoes
+
+Foi iniciada a trilha de ingestao estruturada para abrir caminho a planilhas, arquivos operacionais e integracoes futuras.
+
+Regras aplicadas nesta primeira fase:
+
+- cada importacao agora nasce como um `ImportJob` ligado a uma carteira acessivel ao usuario autenticado
+- a fase inicial suporta `CSV` e `XLSX`
+- os datasets habilitados por enquanto sao `operations`, `cashflow` e `pricing`
+- o lote guarda `dataset`, `source`, nome do arquivo, preview inicial, contagem de linhas e status de processamento
+- a API processa cada linha usando os mesmos services de dominio dos fluxos manuais
+- erros por linha nao derrubam o lote inteiro; o job pode terminar em `completed_with_errors`
+- a tela de `Importacoes` mostra preview e primeiros erros para acompanhamento operacional rapido
+
+Direcao planejada a partir dessa base:
+
+- mapeamento de colunas por layout de origem
+- aprovacao por lote antes de efetivar linhas validas
+- adaptadores dedicados para nota de corretagem, custodiante, administrador e arquivos internos
+- conectores de API para brokers, custodiante, administrador e provedores de preco
+- motor de eventos automaticos para vencimentos, cupons, amortizacoes, dividendos e liquidacoes futuras
+
 Proximas expansoes naturais:
 
 - posicoes consolidadas

@@ -6,6 +6,8 @@ import {
   assetPriceListSchema,
   cashflowEntrySchema,
   cashflowEntryListSchema,
+  importJobListSchema,
+  importJobSchema,
   operationSchema,
   operationListSchema,
   positionListSchema,
@@ -17,7 +19,7 @@ import {
   userListSchema,
   userSchema,
 } from "@/lib/api/schemas";
-import { apiDelete, apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
+import { apiDelete, apiDownload, apiGet, apiPost, apiPut, apiUpload, type DownloadResult } from "@/lib/api/client";
 import type {
   ActionResponse,
   AuditLogList,
@@ -26,6 +28,10 @@ import type {
   AssetPriceList,
   CashflowEntry,
   CashflowEntryList,
+  ImportDatasetType,
+  ImportJob,
+  ImportJobList,
+  ImportSourceType,
   Operation,
   OperationList,
   PositionList,
@@ -121,6 +127,25 @@ export function fetchUsers(): Promise<UserList> {
 
 export function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogList> {
   return apiGet(`/audit${buildAuditQueryString(filters)}`, auditLogListSchema);
+}
+
+export function fetchImportJobs(filters: PortfolioScopedFilters = {}): Promise<ImportJobList> {
+  return apiGet(`/imports${buildPortfolioScopedQueryString(filters)}`, importJobListSchema);
+}
+
+export function uploadImportJob(payload: {
+  portfolio_id: string;
+  dataset: ImportDatasetType;
+  source: ImportSourceType;
+  file: File;
+}): Promise<ImportJob> {
+  const formData = new FormData();
+  formData.set("portfolio_id", payload.portfolio_id);
+  formData.set("dataset", payload.dataset);
+  formData.set("source", payload.source);
+  formData.set("file", payload.file);
+
+  return apiUpload("/imports/upload", formData, importJobSchema);
 }
 
 export function fetchAssets(filters: PortfolioScopedFilters = {}): Promise<AssetList> {
