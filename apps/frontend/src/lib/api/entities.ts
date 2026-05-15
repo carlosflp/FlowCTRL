@@ -2,8 +2,11 @@ import {
   actionResponseSchema,
   auditLogListSchema,
   assetListSchema,
+  assetPriceSchema,
   assetPriceListSchema,
+  cashflowEntrySchema,
   cashflowEntryListSchema,
+  operationSchema,
   operationListSchema,
   positionListSchema,
   positionOverviewSchema,
@@ -19,8 +22,11 @@ import type {
   ActionResponse,
   AuditLogList,
   AssetList,
+  AssetPrice,
   AssetPriceList,
+  CashflowEntry,
   CashflowEntryList,
+  Operation,
   OperationList,
   PositionList,
   PositionOverview,
@@ -121,16 +127,71 @@ export function fetchAssets(filters: PortfolioScopedFilters = {}): Promise<Asset
   return apiGet(`/assets${buildPortfolioScopedQueryString(filters)}`, assetListSchema);
 }
 
+export function fetchAssetReferenceCatalog(): Promise<AssetList> {
+  return apiGet("/assets/reference", assetListSchema);
+}
+
 export function fetchOperations(filters: PortfolioScopedFilters = {}): Promise<OperationList> {
   return apiGet(`/operations${buildPortfolioScopedQueryString(filters)}`, operationListSchema);
+}
+
+export function createOperation(payload: {
+  portfolio_id: string;
+  asset_id: string;
+  operation_type:
+    | "buy"
+    | "sell"
+    | "contribution"
+    | "redemption"
+    | "dividend"
+    | "interest"
+    | "coupon"
+    | "amortization"
+    | "fee"
+    | "tax"
+    | "adjustment"
+    | "transfer";
+  trade_date: string;
+  settlement_date: string;
+  quantity: string;
+  unit_price: string;
+  fees?: string;
+  taxes?: string;
+  status?: "draft" | "pending_approval" | "approved" | "settled" | "cancelled" | "rejected";
+  notes?: string | null;
+}): Promise<Operation> {
+  return apiPost("/operations", payload, operationSchema);
 }
 
 export function fetchCashflowEntries(filters: PortfolioScopedFilters = {}): Promise<CashflowEntryList> {
   return apiGet(`/cashflow${buildPortfolioScopedQueryString(filters)}`, cashflowEntryListSchema);
 }
 
+export function createCashflowEntry(payload: {
+  portfolio_id: string;
+  operation_id?: string | null;
+  entry_date: string;
+  settlement_date: string;
+  description: string;
+  entry_type: "inflow" | "outflow" | "transfer" | "adjustment";
+  amount: string;
+  status?: "pending" | "settled" | "cancelled";
+}): Promise<CashflowEntry> {
+  return apiPost("/cashflow", payload, cashflowEntrySchema);
+}
+
 export function fetchAssetPrices(filters: PortfolioScopedFilters = {}): Promise<AssetPriceList> {
   return apiGet(`/pricing${buildPortfolioScopedQueryString(filters)}`, assetPriceListSchema);
+}
+
+export function createAssetPrice(payload: {
+  asset_id: string;
+  price_date: string;
+  price: string;
+  source: string;
+  is_validated?: boolean;
+}): Promise<AssetPrice> {
+  return apiPost("/pricing", payload, assetPriceSchema);
 }
 
 export function fetchPositions(filters: PositionFilters = {}): Promise<PositionList> {

@@ -15,6 +15,10 @@ from app.modules.assets.schemas import AssetCreate, AssetUpdate
 from app.modules.users.models import User
 
 
+def list_asset_reference_catalog(db: Session) -> list[Asset]:
+    return list(db.scalars(select(Asset).order_by(Asset.ticker)))
+
+
 def get_accessible_asset_ids(
     db: Session,
     *,

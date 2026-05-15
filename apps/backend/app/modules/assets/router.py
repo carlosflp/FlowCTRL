@@ -10,6 +10,7 @@ from app.modules.assets.service import (
     create_asset,
     delete_asset,
     get_asset_or_404,
+    list_asset_reference_catalog,
     list_assets,
     update_asset,
 )
@@ -24,6 +25,14 @@ def read_assets(
     db: Session = Depends(get_db),
 ) -> list[AssetRead]:
     return list_assets(db, current_user=current_user, portfolio_id=portfolio_id)
+
+
+@router.get("/reference", response_model=list[AssetRead])
+def read_asset_reference_catalog(
+    current_user: WriteAccessUser,
+    db: Session = Depends(get_db),
+) -> list[AssetRead]:
+    return list_asset_reference_catalog(db)
 
 
 @router.post("", response_model=AssetRead, status_code=status.HTTP_201_CREATED)

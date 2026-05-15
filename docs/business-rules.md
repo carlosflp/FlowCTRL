@@ -44,6 +44,8 @@ O modulo de caixa ja possui CRUD inicial e segue estas regras:
 - `amount` deve ser maior que zero
 - se `operation_id` for informado, a operacao deve pertencer a mesma carteira do evento de caixa
 - os status iniciais suportados sao `pending`, `settled` e `cancelled`
+- a interface agora permite registrar eventos de caixa diretamente dentro da carteira ativa
+- o vinculo opcional com operacao na UI usa apenas operacoes visiveis dentro do mesmo escopo de carteira
 
 ## Regras de precificacao
 
@@ -54,6 +56,7 @@ O modulo de pricing ja possui CRUD inicial e segue estas regras:
 - `source` e obrigatoria
 - nao pode existir mais de um preco para a mesma combinacao de `asset`, `price_date` e `source`
 - `is_validated` prepara a futura separacao entre preco importado e preco homologado internamente
+- a interface agora permite registrar novos precos a partir da carteira ativa, usando os ativos atualmente relevantes nesse escopo
 
 ## Regras de auditoria
 
@@ -192,6 +195,19 @@ Regras aplicadas:
 - `dashboard`, `assets`, `operations`, `cashflow`, `pricing`, `positions` e `reports` passam a ler dados dentro desse escopo
 - a troca de carteira pode ser feita a qualquer momento pela entrada `Carteiras` no menu lateral
 - se o usuario perder acesso a carteira ativa, a selecao local e descartada e ele volta ao fluxo de escolha
+
+## Lancamentos operacionais no frontend
+
+Foi adicionada uma primeira camada de escrita operacional diretamente pela interface protegida.
+
+Regras aplicadas:
+
+- usuarios `admin`, `manager` e `analyst` podem registrar operacoes, eventos de caixa e precos
+- usuarios `viewer` continuam em leitura apenas
+- o formulario de operacoes sempre usa a carteira ativa e um catalogo de ativos de referencia do backend
+- o formulario de caixa sempre usa a carteira ativa e pode se vincular a uma operacao visivel nesse mesmo escopo
+- o formulario de precos atualiza a base de precificacao dos ativos relevantes para a carteira ativa
+- apos cada lancamento, a interface invalida consultas relacionadas para refletir o novo estado em dashboard, listas, posicoes e relatorios
 
 Proximas expansoes naturais:
 

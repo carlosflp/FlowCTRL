@@ -16,7 +16,7 @@ The repository now includes:
 - async reporting with Celery and MinIO
 - report execution filters by date range, portfolio scope and custom columns
 - audit logging for operations, cashflow and pricing changes
-- a Next.js frontend with login, protected routes, dashboard, operational list views and report execution
+- a Next.js frontend with login, protected routes, dashboard, operational list and launch views, audit exploration and report execution
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
 ## Technical adjustments adopted
@@ -157,6 +157,14 @@ Some small structural adjustments were kept from the original proposal because t
 - the frontend now starts on a protected `Carteiras` selection flow before entering the rest of the platform
 - dashboard, assets, operations, cashflow, pricing, positions and report executions now consume the active portfolio scope
 - admins can assign or revise portfolio access directly from the user management screen
+
+### Stage 13: frontend operational launch flows
+
+- operations now expose a frontend launch form bound to the active portfolio
+- cashflow now exposes a frontend launch form with optional linking to an operation from the same portfolio
+- pricing now exposes a frontend launch form for assets relevant to the active workspace
+- the backend now exposes an `assets/reference` catalog dedicated to write workflows without changing the filtered asset list page
+- dashboard, positions, reports and scoped lists now refresh after successful operational launches
 
 ## Roles
 
@@ -319,6 +327,7 @@ The demo seed is idempotent and now aligns report templates with the current mod
 ### Assets
 
 - `GET /api/v1/assets`
+- `GET /api/v1/assets/reference`
 - `POST /api/v1/assets`
 - `GET /api/v1/assets/{asset_id}`
 - `PUT /api/v1/assets/{asset_id}`
@@ -379,7 +388,7 @@ Validated in the current stage:
 ## Recommended next steps
 
 1. Expand position handling for corporate actions, transfers and richer valuation rules.
-2. Expand audit context with authenticated user attribution across all domains.
+2. Add edit and cancellation workflows to the new operational launch screens.
 3. Add CI for backend tests, frontend build and linting.
 4. Expand account security with password policy, reset flow and session expiration controls.
 5. Expand report templates with saved presets, reusable filter sets and governance approval flows.
