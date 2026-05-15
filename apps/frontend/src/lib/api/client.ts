@@ -115,6 +115,26 @@ export async function apiPut<TResponse, TBody extends object>(
   return parseResponse(response, schema);
 }
 
+export async function apiDelete(
+  path: string,
+  options: RequestOptions = {},
+): Promise<void> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "DELETE",
+    headers: buildHeaders(options),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const detail =
+      data && typeof data === "object" && "detail" in data && typeof data.detail === "string"
+        ? data.detail
+        : null;
+    throw new ApiError(`Request failed with status ${response.status}.`, response.status, detail);
+  }
+}
+
 export async function apiDownload(
   path: string,
   options: RequestOptions = {},

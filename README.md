@@ -17,6 +17,7 @@ The repository now includes:
 - report execution filters by date range, portfolio scope and custom columns
 - audit logging for operations, cashflow and pricing changes
 - a Next.js frontend with login, protected routes, dashboard, operational list and launch views, audit exploration and report execution
+- inline edit, cancellation and removal workflows for operations, cashflow and pricing
 - PostgreSQL, Redis, MinIO and Celery wired through Docker Compose
 
 ## Technical adjustments adopted
@@ -165,6 +166,13 @@ Some small structural adjustments were kept from the original proposal because t
 - pricing now exposes a frontend launch form for assets relevant to the active workspace
 - the backend now exposes an `assets/reference` catalog dedicated to write workflows without changing the filtered asset list page
 - dashboard, positions, reports and scoped lists now refresh after successful operational launches
+
+### Stage 14: operational maintenance workflows
+
+- operations, cashflow and pricing now expose row-level edit actions directly from their tables
+- operations and cashflow now support quick cancellation from the list without leaving the active portfolio workspace
+- managers and admins can now remove operations, cashflow entries and prices from the same operational screens
+- successful maintenance actions refresh dashboard, positions, reports and scoped lists to keep the workspace consistent
 
 ## Roles
 
@@ -388,7 +396,7 @@ Validated in the current stage:
 ## Recommended next steps
 
 1. Expand position handling for corporate actions, transfers and richer valuation rules.
-2. Add edit and cancellation workflows to the new operational launch screens.
+2. Add quick operational detail drawers with before-and-after context from the audit trail.
 3. Add CI for backend tests, frontend build and linting.
 4. Expand account security with password policy, reset flow and session expiration controls.
 5. Expand report templates with saved presets, reusable filter sets and governance approval flows.

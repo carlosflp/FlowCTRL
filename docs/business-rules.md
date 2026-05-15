@@ -209,6 +209,19 @@ Regras aplicadas:
 - o formulario de precos atualiza a base de precificacao dos ativos relevantes para a carteira ativa
 - apos cada lancamento, a interface invalida consultas relacionadas para refletir o novo estado em dashboard, listas, posicoes e relatorios
 
+## Manutencao operacional no frontend
+
+As telas operacionais agora tambem cobrem o ciclo de manutencao dos registros criados.
+
+Regras aplicadas:
+
+- `operations`, `cashflow` e `pricing` agora possuem acao de edicao diretamente na tabela
+- a edicao sempre acontece dentro da carteira ativa, sem reabrir o escopo por fora da sessao atual
+- `operations` e `cashflow` agora permitem cancelamento rapido pela propria listagem
+- registros ja cancelados continuam editaveis, mas a acao rapida de cancelamento fica desabilitada
+- exclusao continua restrita a perfis `admin` e `manager`, refletindo a mesma regra do backend
+- apos editar, cancelar ou excluir, a interface invalida as consultas dependentes para manter `dashboard`, `posicoes`, `pricing`, `cashflow`, `operations` e `reports` consistentes
+
 Proximas expansoes naturais:
 
 - posicoes consolidadas

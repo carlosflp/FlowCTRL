@@ -17,7 +17,7 @@ import {
   userListSchema,
   userSchema,
 } from "@/lib/api/schemas";
-import { apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
+import { apiDelete, apiDownload, apiGet, apiPost, apiPut, type DownloadResult } from "@/lib/api/client";
 import type {
   ActionResponse,
   AuditLogList,
@@ -163,6 +163,40 @@ export function createOperation(payload: {
   return apiPost("/operations", payload, operationSchema);
 }
 
+export function updateOperation(
+  operationId: string,
+  payload: {
+    asset_id?: string;
+    operation_type?:
+      | "buy"
+      | "sell"
+      | "contribution"
+      | "redemption"
+      | "dividend"
+      | "interest"
+      | "coupon"
+      | "amortization"
+      | "fee"
+      | "tax"
+      | "adjustment"
+      | "transfer";
+    trade_date?: string;
+    settlement_date?: string;
+    quantity?: string;
+    unit_price?: string;
+    fees?: string;
+    taxes?: string;
+    status?: "draft" | "pending_approval" | "approved" | "settled" | "cancelled" | "rejected";
+    notes?: string | null;
+  },
+): Promise<Operation> {
+  return apiPut(`/operations/${operationId}`, payload, operationSchema);
+}
+
+export function deleteOperation(operationId: string): Promise<void> {
+  return apiDelete(`/operations/${operationId}`);
+}
+
 export function fetchCashflowEntries(filters: PortfolioScopedFilters = {}): Promise<CashflowEntryList> {
   return apiGet(`/cashflow${buildPortfolioScopedQueryString(filters)}`, cashflowEntryListSchema);
 }
@@ -180,6 +214,25 @@ export function createCashflowEntry(payload: {
   return apiPost("/cashflow", payload, cashflowEntrySchema);
 }
 
+export function updateCashflowEntry(
+  entryId: string,
+  payload: {
+    operation_id?: string | null;
+    entry_date?: string;
+    settlement_date?: string;
+    description?: string;
+    entry_type?: "inflow" | "outflow" | "transfer" | "adjustment";
+    amount?: string;
+    status?: "pending" | "settled" | "cancelled";
+  },
+): Promise<CashflowEntry> {
+  return apiPut(`/cashflow/${entryId}`, payload, cashflowEntrySchema);
+}
+
+export function deleteCashflowEntry(entryId: string): Promise<void> {
+  return apiDelete(`/cashflow/${entryId}`);
+}
+
 export function fetchAssetPrices(filters: PortfolioScopedFilters = {}): Promise<AssetPriceList> {
   return apiGet(`/pricing${buildPortfolioScopedQueryString(filters)}`, assetPriceListSchema);
 }
@@ -192,6 +245,23 @@ export function createAssetPrice(payload: {
   is_validated?: boolean;
 }): Promise<AssetPrice> {
   return apiPost("/pricing", payload, assetPriceSchema);
+}
+
+export function updateAssetPrice(
+  priceId: string,
+  payload: {
+    asset_id?: string;
+    price_date?: string;
+    price?: string;
+    source?: string;
+    is_validated?: boolean;
+  },
+): Promise<AssetPrice> {
+  return apiPut(`/pricing/${priceId}`, payload, assetPriceSchema);
+}
+
+export function deleteAssetPrice(priceId: string): Promise<void> {
+  return apiDelete(`/pricing/${priceId}`);
 }
 
 export function fetchPositions(filters: PositionFilters = {}): Promise<PositionList> {
